@@ -64,12 +64,14 @@ Se evalúa: dificultad, originalidad, desarrollo de la práctica en clase a lo l
 | Visualización | `plotly` |
 | Datos SEC | APIs oficiales EDGAR (`data.sec.gov/submissions`, `data.sec.gov/api/xbrl/frames`) + `requests` y `BeautifulSoup` para el texto narrativo de los filings |
 | Noticias | FNSPID (dataset público, titulares 2016–2020) y NewsAPI (plan gratuito, último mes) |
-| Sentimiento (PLN) | **Modelos propios** con `tensorflow` + `keras` 3, entrenados sobre Financial PhraseBank (8.6). Tokenizador WordPiece con `tokenizers`. Sin `keras-hub`: el bloque Transformer, el embedding posicional y las máscaras se escriben a mano con capas de `keras`, para poder explicarlos. Ni Claude ni otro LLM por API. FinBERT (`transformers`) solo como techo opcional |
+| Sentimiento (PLN) | **Modelos propios** con `keras` 3 sobre el motor **PyTorch** (`torch`, con la GPU del Mac por MPS), entrenados sobre Financial PhraseBank (8.6). Tokenizador WordPiece con `tokenizers`. Sin `keras-hub`: el bloque Transformer, el embedding posicional y las máscaras se escriben a mano con capas de `keras`, para poder explicarlos. Ni Claude ni otro LLM por API. FinBERT (`transformers`) solo como techo opcional |
 | Comparación de modelos | `scikit-learn` (TF-IDF, partición, métricas) |
 | Interfaz | Streamlit (≥ 1.66, compatible con el `protobuf` ≥ 6 que exige TensorFlow 2.21), en un único `app.py` construido al final |
 | Claves | `.env` + `python-dotenv` |
 
 > **Sin entorno virtual:** por decisión consciente del usuario, las dependencias se instalan en el Python global (`python3 -m pip install -r requirements.txt`). Documentado en la bitácora; reversible en cualquier momento porque `requirements.txt` está completo.
+
+> **Motor de Keras: PyTorch, fijado en cada notebook.** Keras 3 funciona sobre TensorFlow o PyTorch con el mismo código. Se usa PyTorch porque en el Mac del autor (Apple M5 Pro) entrena unas 3,3 veces más rápido: 51.600 frente a 15.500 tokens/s, medido el 20 oct 2026 con un Transformer de 11 M de parámetros, porque usa la GPU del Mac y TensorFlow solo el procesador. Todos los modelos usan el **mismo motor**, para que la comparación sea justa. Cada notebook con Keras lo fija en su primera celda de código, **antes de importar Keras**: `os.environ["KERAS_BACKEND"] = "torch"`. Así no depende del `KERAS_BACKEND=torch` del `~/.zshrc` del autor (que es de otros proyectos y no se toca) ni de cómo arranque el kernel en VS Code. Para cambiar de motor basta con cambiar esa línea y reiniciar el kernel. El código usa solo Keras (`keras.layers`, `keras.ops`), nada propio de TensorFlow (`tf.data`, `tf.strings`) ni de PyTorch, para que siga funcionando con cualquiera de los dos.
 
 > **Apuntes de clase en TensorFlow 2.13 / Keras 2:** se adaptan a Keras 3 y pandas 2 (p. ej. `DataFrame.append` → `pd.concat`). Cada adaptación se anota en la bitácora.
 

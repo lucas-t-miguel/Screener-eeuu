@@ -1,0 +1,27 @@
+# Claves (nunca se suben)
+.env
+.streamlit/secrets.toml
+
+# Datos: todo se regenera ejecutando los notebooks en orden (incluye FNSPID, 5,7 GB)
+data/
+
+# Versiones completas retiradas de la secuencia principal
+archivo/
+
+# Modelos entrenados y datasets descargados, estén donde estén
+modelos/
+*.keras
+*.h5
+*.ckpt
+*.parquet
+*.csv
+*.zip
+
+# Python y Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Sistema y editor
+.DS_Store
+.vscode/

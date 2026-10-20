@@ -1,0 +1,28 @@
+# Configuración y entorno
+python-dotenv==1.0.1
+
+# Datos de mercado y técnico
+yfinance==1.7.0
+pandas==2.3.2
+pandas-ta==0.4.71b0
+plotly==5.24.1
+
+# SEC EDGAR y noticias
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
+
+# Modelos de sentimiento propios (notebook 07)
+tensorflow==2.21.0
+keras==3.15.1
+tokenizers==0.23.2
+
+# TF-IDF, partición y métricas (notebook 07)
+scikit-learn==1.9.1
+
+# Interfaz
+streamlit==1.66.0
+
+# Notebooks
+jupyter==1.1.1
+ipykernel==6.29.5

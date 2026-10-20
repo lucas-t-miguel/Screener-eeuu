@@ -18,6 +18,10 @@ import requests
 # --- Rutas ---
 CARPETA_CACHE = Path(__file__).resolve().parent / "data" / "cache"
 
+# --- Reproducibilidad ---
+# Semilla de todas las particiones, muestreos e inicializaciones de redes, para que Restart & Run All dé las mismas cifras
+SEMILLA = 42
+
 # --- SEC EDGAR ---
 URL_TICKERS_CON_BOLSA = "https://www.sec.gov/files/company_tickers_exchange.json"
 SEC_TIMEOUT_SEGUNDOS = 10

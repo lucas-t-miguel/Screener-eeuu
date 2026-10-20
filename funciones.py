@@ -7,6 +7,7 @@ un notebook (o en un notebook y en app.py).
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -423,3 +424,67 @@ def calcular_estacionalidad(cierres: pd.Series, anios: int = ESTACIONALIDAD_ANIO
     por_dia = retornos_diarios.groupby(retornos_diarios.index.dayofweek).agg(retorno_medio="mean", dias="count")
     por_dia.index = [NOMBRES_DIAS[dia] for dia in por_dia.index]
     return por_mes, por_dia
+
+
+# --- Noticias: a qué empresa se refiere un titular (notebook 06 y app.py) ---
+# Si la primera palabra del nombre es una de estas, se usan las dos primeras (TEXAS -> TEXAS INSTRUMENTS)
+PALABRAS_DEMASIADO_COMUNES = {
+    "AMERICAN", "GENERAL", "FIRST", "UNITED", "NATIONAL", "INTERNATIONAL", "TEXAS", "WESTERN", "EASTERN",
+    "SOUTHERN", "NORTHERN", "GLOBAL", "THE", "NEW", "CENTRAL", "PACIFIC", "ATLANTIC", "ADVANCED", "APPLIED",
+    "DIGITAL", "PUBLIC", "ROYAL", "STANDARD", "UNIVERSAL", "CAPITAL", "BANK", "ENERGY", "HEALTH", "CHINA",
+    "CANADIAN", "PACKAGING", "ALLIED", "CONSOLIDATED", "WASTE",
+}
+
+
+def palabra_clave_empresa(nombre: str) -> str:
+    """Primera palabra del nombre en mayúsculas, o las dos primeras si la primera es demasiado común."""
+    palabras = re.sub(r"[^A-Za-z0-9& ]", " ", nombre).upper().split()
+    if palabras[0] in PALABRAS_DEMASIADO_COMUNES and len(palabras) > 1:
+        return palabras[0] + " " + palabras[1]
+    return palabras[0]
+
+
+def menciona_empresa(titular: str, ticker: str, palabra_clave: str) -> bool:
+    """True si el titular contiene el ticker o la palabra clave como palabras sueltas."""
+    titular = titular.upper()
+    if re.search(r"\b" + re.escape(ticker) + r"\b", titular):
+        return True
+    # Una palabra clave de 1-2 letras (p. ej. "X") aparecería en cualquier titular: solo vale el ticker
+    return len(palabra_clave) >= 3 and re.search(r"\b" + re.escape(palabra_clave) + r"\b", titular) is not None
+
+
+# --- NewsAPI (notebook 06 y app.py) ---
+URL_NEWSAPI = "https://newsapi.org/v2/everything"
+# Solo medios financieros: sin este filtro, buscar "Garmin" devuelve sorteos de relojes y paquetes de software
+MEDIOS_FINANCIEROS = [
+    "finance.yahoo.com", "marketwatch.com", "fool.com", "seekingalpha.com", "benzinga.com", "cnbc.com",
+    "investors.com", "zacks.com", "barrons.com", "wsj.com", "bloomberg.com", "reuters.com", "forbes.com",
+    "businesswire.com", "prnewswire.com", "globenewswire.com", "biztoc.com", "thestreet.com", "investing.com",
+    "nasdaq.com", "businessinsider.com", "ft.com", "axios.com", "gurufocus.com", "insidermonkey.com", "247wallst.com",
+]
+
+
+def buscar_titulares_newsapi(palabras: list[str], desde: pd.Timestamp) -> list[dict]:
+    """Busca en los titulares de medios financieros cualquiera de las palabras, desde la fecha dada.
+
+    Requiere haber llamado antes a load_dotenv(). Devuelve la lista de artículos tal como la da
+    NewsAPI. Lanza RuntimeError si falta la clave o si la API responde con un error (p. ej. el
+    límite diario agotado).
+    """
+    clave = os.getenv("NEWSAPI_KEY", "").strip()
+    if not clave:
+        raise RuntimeError("Falta NEWSAPI_KEY en el .env")
+    parametros = {
+        "q": " OR ".join(f'"{palabra}"' for palabra in palabras),
+        "searchIn": "title",
+        "domains": ",".join(MEDIOS_FINANCIEROS),
+        "language": "en",
+        "from": desde.strftime("%Y-%m-%d"),
+        "sortBy": "publishedAt",
+        "pageSize": 100,
+    }
+    respuesta = requests.get(URL_NEWSAPI, params=parametros, headers={"X-Api-Key": clave}, timeout=30)
+    datos = respuesta.json()
+    if respuesta.status_code != 200:
+        raise RuntimeError(f"NewsAPI respondió {respuesta.status_code}: {datos.get('code')} - {datos.get('message')}")
+    return datos["articles"]

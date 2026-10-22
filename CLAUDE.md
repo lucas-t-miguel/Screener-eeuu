@@ -214,7 +214,8 @@ Se usa `pandas-ta` para los cálculos. Si algún indicador se implementa a mano 
 **Fuentes de texto (notebook 06)**
 
 - **Noticias:**
-  - **FNSPID** (Dong, Fan y Peng 2024, arXiv 2402.06698; CC BY-NC 4.0, uso académico citando): titulares con el ticker en cada fila. Para nuestro universo, 486.041 titulares de 637 de las 1.000 empresas, de octubre de 2016 a junio de 2020. Solo titular, sin texto del artículo. Se limpian duplicados y titulares genéricos de listas.
+  - **FNSPID** (Dong, Fan y Peng 2024, arXiv 2402.06698; CC BY-NC 4.0, uso académico citando): titulares con el ticker en cada fila. Para nuestro universo, 464.983 titulares sin duplicados de 639 de las 1.000 empresas, de octubre de 2016 a junio de 2020; el 41 % habla de su propia empresa (633 empresas con alguno). Solo titular, sin texto del artículo.
+  - **A qué empresa se refiere un titular** (`menciona_empresa` en `funciones.py`, revisada el 22 oct 2026): ticker en mayúsculas y suelto (los de una letra o ambiguos, solo entre paréntesis o tras la bolsa) o palabra clave del nombre, con 87 palabras clave revisadas a mano (`PALABRA_CLAVE_A_MANO`): las compartidas por dos empresas, las más frecuentes en los titulares y las que dieron falsos positivos.
   - **NewsAPI** (plan gratuito: 100 peticiones/día, último mes, máximo 100 resultados por consulta): titular y resumen corto de las noticias recientes, para el screener del día.
 - **Filings SEC:** Item 1A (riesgos) y Item 7 (MD&A) del 10-K/10-Q, y cuerpo de los 8-K. Las ~110 empresas con 20-F/40-F y XOM (CIK nuevo sin histórico) se deciden en el notebook 06.
 - **Corpus de preentrenamiento** de M3a/M3b: texto de los filings más los titulares de noticias.
@@ -287,7 +288,7 @@ Se usa `pandas-ta` para los cálculos. Si algún indicador se implementa a mano 
 
 - **Sesgo de supervivencia:** la lista actual de la SEC solo incluye empresas que siguen cotizando hoy.
 - Las ventas en corto no modelan coste ni disponibilidad de préstamo de acciones.
-- El sentimiento de noticias solo puede simularse de oct 2016 a jun 2020 y en 637 de las 1.000 empresas (8.6).
+- El sentimiento de noticias solo puede simularse de oct 2016 a jun 2020 y en las 633 empresas con titulares sobre sí mismas (8.6).
 
 ### 8.9 Comparaciones de modelos y procedimientos
 

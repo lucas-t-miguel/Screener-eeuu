@@ -435,22 +435,70 @@ PALABRAS_DEMASIADO_COMUNES = {
     "CANADIAN", "PACKAGING", "ALLIED", "CONSOLIDATED", "WASTE",
 }
 
+# Palabras clave revisadas a mano (22 oct 2026): las que comparten dos empresas del universo, las que aparecen
+# en más titulares (FNSPID + NewsAPI) y las que dieron falsos positivos en NewsAPI. "" = solo vale el ticker.
+PALABRA_CLAVE_A_MANO = {
+    # Palabra común o de otro significado en titulares financieros
+    "TROW": "T ROWE", "TGT": "", "MS": "MORGAN STANLEY", "SWK": "STANLEY BLACK", "TMUS": "T MOBILE",
+    "NWSA": "NEWS CORP", "MAA": "MID AMERICA APARTMENT", "TTD": "TRADE DESK", "DOW": "DOW CHEMICAL", "WFC": "WELLS FARGO",
+    "GFI": "GOLD FIELDS", "SPGI": "S&P GLOBAL", "APD": "AIR PRODUCTS", "O": "REALTY INCOME", "HD": "HOME DEPOT",
+    "JLL": "JONES LANG", "BBY": "BEST BUY", "NDAQ": "", "JHX": "JAMES HARDIE", "SJM": "SMUCKER",
+    "RJF": "RAYMOND JAMES", "STLD": "STEEL DYNAMICS", "ELS": "EQUITY LIFESTYLE", "PFGC": "PERFORMANCE FOOD",
+    "CORZ": "CORE SCIENTIFIC", "ELF": "E L F", "RRC": "RANGE RESOURCES", "CHRW": "H ROBINSON",
+    "BMY": "BRISTOL MYERS", "EPD": "ENTERPRISE PRODUCTS", "BOX": "", "BROS": "DUTCH BROS", "PLUG": "PLUG POWER",
+    "MTCH": "MATCH GROUP", "GAP": "", "XYZ": "", "SNAP": "", "RBC": "RBC BEARINGS", "JD": "JD COM",
+    # Palabra clave compartida por dos empresas del universo
+    "BAC": "BANK OF AMERICA", "BMO": "BANK OF MONTREAL", "BNS": "BANK OF NOVA", "BNY": "MELLON",
+    "USB": "US BANCORP", "USFD": "US FOODS", "ACHR": "ARCHER AVIATION", "ADM": "ARCHER DANIELS",
+    "BIO": "BIO RAD", "TECH": "BIO TECHNE", "BAM": "BROOKFIELD ASSET", "KO": "COCA COLA",
+    "CCEP": "COCA COLA EUROPACIFIC", "STZ": "CONSTELLATION BRANDS", "CEG": "CONSTELLATION ENERGY",
+    "CCK": "CROWN HOLDINGS", "CCI": "CROWN CASTLE", "DLTR": "DOLLAR TREE", "DG": "DOLLAR GENERAL",
+    "FDXF": "FEDEX FREIGHT", "FIS": "FIDELITY NATIONAL", "FNF": "FIDELITY NATIONAL FINANCIAL",
+    "GEV": "GE VERNOVA", "GEHC": "GE HEALTHCARE", "HONA": "HONEYWELL AEROSPACE", "HII": "HUNTINGTON INGALLS",
+    "HBAN": "HUNTINGTON BANCSHARES", "ISRG": "INTUITIVE SURGICAL", "LUNR": "INTUITIVE MACHINES",
+    "JNJ": "JOHNSON & JOHNSON", "JCI": "JOHNSON CONTROLS", "ODFL": "OLD DOMINION", "ONB": "OLD NATIONAL",
+    "ON": "ON SEMICONDUCTOR", "ONON": "ON HOLDING", "PNFP": "PINNACLE FINANCIAL", "PNW": "PINNACLE WEST",
+    "PL": "PLANET LABS", "PLNT": "PLANET FITNESS", "RKLB": "ROCKET LAB", "RKT": "ROCKET COMPANIES",
+    "SNA": "SNAP ON", "PSLV": "SPROTT PHYSICAL SILVER", "PHYS": "SPROTT PHYSICAL GOLD", "WPC": "W P CAREY",
+    "GWW": "GRAINGER", "WMB": "WILLIAMS COMPANIES", "WSM": "WILLIAMS SONOMA",
+}
+# Tickers que en los titulares suelen ser otra cosa: RBC (Royal Bank of Canada), RS (el "RS Rating" de IBD)
+TICKERS_AMBIGUOS = {"RBC", "RS"}
 
-def palabra_clave_empresa(nombre: str) -> str:
-    """Primera palabra del nombre en mayúsculas, o las dos primeras si la primera es demasiado común."""
-    palabras = re.sub(r"[^A-Za-z0-9& ]", " ", nombre).upper().split()
+
+def normalizar_para_buscar(texto: str) -> str:
+    """Texto en mayúsculas, con la puntuación (salvo &) convertida en espacios: 'Bio-Techne' -> 'BIO TECHNE'."""
+    return " ".join(re.sub(r"[^A-Za-z0-9& ]", " ", texto).upper().split())
+
+
+def palabra_clave_empresa(ticker: str, nombre: str) -> str:
+    """Palabra clave con la que se busca a la empresa en los titulares.
+
+    La de PALABRA_CLAVE_A_MANO si la tiene; si no, la primera palabra del nombre,
+    o las dos primeras si la primera es demasiado común.
+    """
+    if ticker in PALABRA_CLAVE_A_MANO:
+        return PALABRA_CLAVE_A_MANO[ticker]
+    palabras = normalizar_para_buscar(nombre).split()
     if palabras[0] in PALABRAS_DEMASIADO_COMUNES and len(palabras) > 1:
         return palabras[0] + " " + palabras[1]
     return palabras[0]
 
 
 def menciona_empresa(titular: str, ticker: str, palabra_clave: str) -> bool:
-    """True si el titular contiene el ticker o la palabra clave como palabras sueltas."""
-    titular = titular.upper()
-    if re.search(r"\b" + re.escape(ticker) + r"\b", titular):
+    """True si el titular contiene el ticker o la palabra clave de la empresa.
+
+    El ticker tiene que ir en mayúsculas y suelto: ni 'Plug' vale por PLUG, ni 'PG&E' por PG, ni 'U.S.'
+    por U. Un ticker de una letra o ambiguo solo vale entre paréntesis o tras la bolsa: '(T)', 'NYSE: T'.
+    """
+    if len(ticker) == 1 or ticker in TICKERS_AMBIGUOS:
+        patron_ticker = r"\(" + re.escape(ticker) + r"\)|(?i:NYSE|NASDAQ)\s*:\s*" + re.escape(ticker) + r"\b"
+    else:
+        patron_ticker = r"(?<![\w&.-])" + re.escape(ticker) + r"(?![\w&-]|\.\w)"
+    if re.search(patron_ticker, titular):
         return True
     # Una palabra clave de 1-2 letras (p. ej. "X") aparecería en cualquier titular: solo vale el ticker
-    return len(palabra_clave) >= 3 and re.search(r"\b" + re.escape(palabra_clave) + r"\b", titular) is not None
+    return len(palabra_clave) >= 3 and re.search(r"\b" + re.escape(palabra_clave) + r"\b", normalizar_para_buscar(titular)) is not None
 
 
 # --- NewsAPI (notebook 06 y app.py) ---

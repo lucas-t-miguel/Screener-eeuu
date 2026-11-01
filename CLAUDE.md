@@ -70,14 +70,21 @@ Se responde en tres partes:
 | Visualización | `plotly` |
 | Datos SEC | APIs oficiales EDGAR (`data.sec.gov/submissions`, `data.sec.gov/api/xbrl/frames`) + `requests` y `BeautifulSoup` para el texto de los informes |
 | Noticias | FNSPID (titulares 2016–2020) y NewsAPI (plan gratuito, último mes) |
-| Sentimiento (PLN) | Diccionario Loughran-McDonald y modelos propios en `keras` 3 escritos **como en los apuntes de clase**: `TextVectorization` por palabras, capas `TransformerEncoder` y `PositionalEmbedding`, y el enmascarado de `bert_simplificado`. Ni Claude ni otro LLM por API |
+| Sentimiento (PLN) | Diccionario Loughran-McDonald y modelos propios en `keras` 3 sobre TensorFlow, escritos **como en los apuntes de clase**: `TextVectorization` por palabras, capas `TransformerEncoder` y `PositionalEmbedding`, y el enmascarado de `bert_simplificado`. Ni Claude ni otro LLM por API |
 | Evaluación | `scikit-learn` (partición, F1, matriz de confusión) |
 | Interfaz | Streamlit (≥ 1.66), opcional: se decide al final (8.10) |
 | Claves | `.env` + `python-dotenv` |
 
 > **Apuntes de clase:** carpeta `/Users/lucas/Desktop/4º carrera/AAPI (Algoit. y arquit. para el procesado de imágenes)/3. NLP`. Referencias principales: `1. transformers/Modelos simples NLP de clasificacion.ipynb`, `1. transformers/Transformers.ipynb` y `2. BERT/bert_simplificado.ipynb`. Están en TensorFlow 2.13 / Keras 2 y clasifican en 2 clases (IMDB). Aquí se adaptan a Keras 3 y a 3 clases, con el menor número de cambios posible.
 
-> **Motor de Keras:** el que permita usar el código de los apuntes con menos cambios. Si `TextVectorization`, `TransformerEncoder` y el enmascarado de BERT funcionan con PyTorch con cambios mínimos, se usa **PyTorch** (unas 3,3 veces más rápido en el Mac del autor, porque usa su GPU). Si no, **TensorFlow**, como en clase. La prueba y la elección del autor quedan en la bitácora. El motor se fija en la primera celda de código de cada notebook con Keras, antes de importarlo: `os.environ["KERAS_BACKEND"] = "..."`. Todos los modelos usan el mismo motor.
+> **Motor de Keras: TensorFlow** (decisión del autor, 1 nov 2026, tras la prueba descrita en la bitácora). Es el motor de clase y el que pide menos cambios al código de los apuntes: con PyTorch hacían falta 5 cambios más (tensores en la GPU que no pasan a numpy, `tf.*` dentro de las capas, `float64`, el embedding de posición fuera de una capa) y la GPU del Mac cerraba Python en `torch.arange`. Tampoco era más rápido con esta red: 90 ms por lote con TensorFlow frente a 96 ms con PyTorch (preentrenamiento, lotes de 32). Todos los notebooks con Keras lo fijan en su primera celda de código, antes de importarlo: `os.environ["KERAS_BACKEND"] = "tensorflow"`.
+
+> **Cambios a los apuntes por Keras 3** (cada uno se anota en el notebook como "Diferencia con los apuntes"):
+> 1. Nombres de capa sin `/` (`encoder_0/ffn` → `encoder_0_ffn`): Keras 3 no los admite.
+> 2. Pérdida del preentrenamiento con la reducción por defecto en lugar de `Reduction.NONE`: los `sample_weights` ya anulan las posiciones no tapadas.
+> 3. Token de máscara `"[mask]"` en minúscula (y `special_tokens` definido): con `"[MASK]"` la estandarización lo convierte en `[UNK]` y se taparía con "desconocido". Es un error de los apuntes.
+> 4. `.keras` en lugar de `.h5`, `pd.concat` en lugar de `DataFrame.append`, y 3 clases (`Dense(3, activation="softmax")` y `sparse_categorical_crossentropy`).
+> 5. En `PositionalEmbedding.compute_mask`, `keras.ops.not_equal` en lugar de `tf.math.not_equal`: Keras 3 la llama con un tensor simbólico al construir el modelo, también con TensorFlow (medido el 1 nov).
 
 > **Sin entorno virtual:** por decisión consciente del autor, las dependencias se instalan en el Python global (`python3 -m pip install -r requirements.txt`). Reversible en cualquier momento.
 

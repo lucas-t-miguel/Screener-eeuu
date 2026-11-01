@@ -11,7 +11,6 @@ import re
 import time
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pandas_ta as ta
 import requests
@@ -125,15 +124,10 @@ def obtener_cik(ticker: str, universo: pd.DataFrame) -> str:
 
 # --- Indicadores técnicos ---
 RSI_SESIONES = 14
-MACD_RAPIDA, MACD_LENTA, MACD_SENAL = 12, 26, 9
-BOLLINGER_SESIONES, BOLLINGER_DESVIACIONES = 20, 2
-FIBONACCI_SESIONES = 45
-FIBONACCI_NIVELES = (0.236, 0.382, 0.5, 0.618, 0.786)
 CMF_SESIONES = 20
 ADX_SESIONES = 14
 EMA_RAPIDA, EMA_LENTA = 4, 8
 DONCHIAN_SESIONES = 20
-ATR_SESIONES = 14
 
 
 def calcular_cmf(alto: pd.Series, bajo: pd.Series, cierre: pd.Series, volumen: pd.Series, sesiones: int) -> pd.Series:
@@ -151,7 +145,7 @@ def calcular_cmf(alto: pd.Series, bajo: pd.Series, cierre: pd.Series, volumen: p
 
 
 def calcular_indicadores(precios: pd.DataFrame) -> pd.DataFrame:
-    """Calcula todos los indicadores técnicos del proyecto para UN ticker.
+    """Calcula los indicadores técnicos que usan las señales (RSI, CMF, ADX, EMA y Donchian) para UN ticker.
 
     Recibe un DataFrame con columnas open, high, low, close y volume,
     ordenado por fecha (una fila por sesión). Devuelve un DataFrame con el
@@ -171,28 +165,6 @@ def calcular_indicadores(precios: pd.DataFrame) -> pd.DataFrame:
     # RSI: fuerza relativa de subidas frente a bajadas (0-100)
     indicadores["rsi"] = ta.rsi(cierre, length=RSI_SESIONES)
 
-    # MACD: diferencia entre dos medias exponenciales, su señal y el histograma
-    macd = ta.macd(cierre, fast=MACD_RAPIDA, slow=MACD_LENTA, signal=MACD_SENAL)
-    indicadores["macd"] = macd.iloc[:, 0]
-    indicadores["macd_histograma"] = macd.iloc[:, 1]
-    indicadores["macd_senal"] = macd.iloc[:, 2]
-
-    # Bandas de Bollinger: media de 20 sesiones ± 2 desviaciones típicas
-    bandas = ta.bbands(cierre, length=BOLLINGER_SESIONES, lower_std=BOLLINGER_DESVIACIONES,
-                       upper_std=BOLLINGER_DESVIACIONES, ddof=0)
-    indicadores["bollinger_inferior"] = bandas.iloc[:, 0]
-    indicadores["bollinger_media"] = bandas.iloc[:, 1]
-    indicadores["bollinger_superior"] = bandas.iloc[:, 2]
-
-    # Fibonacci dinámico (a mano, no existe en pandas-ta): niveles medidos desde el máximo
-    # de las últimas 45 sesiones hacia abajo, en proporción al recorrido máximo - mínimo
-    maximo = alto.rolling(FIBONACCI_SESIONES).max()
-    minimo = bajo.rolling(FIBONACCI_SESIONES).min()
-    indicadores["fibonacci_maximo"] = maximo
-    indicadores["fibonacci_minimo"] = minimo
-    for nivel in FIBONACCI_NIVELES:
-        indicadores[f"fibonacci_{nivel * 100:.1f}".replace(".", "_")] = maximo - nivel * (maximo - minimo)
-
     # CMF: presión compradora (+) o vendedora (-) ponderada por volumen, entre -1 y 1.
     # Calculado a mano: pandas-ta divide por un número diminuto cuando máximo = mínimo
     # (días casi sin negociación) y da valores absurdos; aquí ese día cuenta como neutro (0).
@@ -210,9 +182,6 @@ def calcular_indicadores(precios: pd.DataFrame) -> pd.DataFrame:
     donchian = ta.donchian(alto, bajo, lower_length=DONCHIAN_SESIONES, upper_length=DONCHIAN_SESIONES)
     indicadores["donchian_minimo_previo"] = donchian.iloc[:, 0].shift(1)
     indicadores["donchian_maximo_previo"] = donchian.iloc[:, 2].shift(1)
-
-    # ATR: rango medio diario, base de todos los stops
-    indicadores["atr"] = ta.atr(alto, bajo, cierre, length=ATR_SESIONES)
 
     return indicadores
 
@@ -290,140 +259,6 @@ def detectar_senales(precios: pd.DataFrame, indicadores: pd.DataFrame) -> pd.Dat
     senales.loc[hay_venta, "senal"] = "venta"
     senales.loc[hay_compra & hay_venta, "senal"] = "conflicto"
     return senales
-
-
-# --- Riesgo y gestión de la operación ---
-STOP_FIJO_ATR = 2
-STOP_TRAILING_ATR = 3
-RANGO_SIN_NIVEL_ATR = 2
-# Un soporte/resistencia cuenta como "cercano" si está a como mucho 3 ATR del cierre
-# (la misma anchura que el trailing-stop). Elegido en el notebook 05.
-RANGO_NIVEL_CERCANO_ATR = 3
-COLUMNAS_NIVELES_PRECIO = ("fibonacci_23_6", "fibonacci_38_2", "fibonacci_50_0", "fibonacci_61_8",
-                           "fibonacci_78_6", "bollinger_inferior", "bollinger_media", "bollinger_superior")
-SESIONES_POR_ANIO = 252
-
-
-def calcular_stops_operacion(precios_operacion: pd.DataFrame, precio_entrada: float,
-                             atr_entrada: float, sentido: str) -> pd.DataFrame:
-    """Calcula los stops de UNA operación para cada sesión desde la entrada.
-
-    Recibe los precios (high, low) desde el día de entrada incluido, ordenados por fecha,
-    el precio de entrada, el ATR del día de la señal (congelado toda la operación) y el
-    sentido ('compra' o 'venta'). Devuelve un DataFrame con stop_fijo, stop_trailing y
-    stop_activo (el más protector de los dos). El stop de cada sesión solo usa los
-    precios hasta la sesión anterior: es el nivel que se conoce al empezar el día.
-    Lanza ValueError si el sentido no es válido o el ATR no es positivo.
-    """
-    if sentido not in ("compra", "venta"):
-        raise ValueError(f"Sentido no válido: {sentido!r} (debe ser 'compra' o 'venta')")
-    if not atr_entrada > 0:
-        raise ValueError(f"El ATR de entrada debe ser positivo, se recibió {atr_entrada}")
-
-    stops = pd.DataFrame(index=precios_operacion.index)
-    if sentido == "compra":
-        # Máximo alcanzado desde la entrada hasta AYER, en tres pasos:
-        #   cummax()  -> máximo acumulado hasta hoy
-        #   shift(1)  -> se retrasa un día para no usar el máximo de hoy (el primer día vale el precio de entrada)
-        #   clip()    -> nunca por debajo del precio de entrada
-        extremo = precios_operacion["high"].cummax().shift(1, fill_value=precio_entrada).clip(lower=precio_entrada)
-        stops["stop_fijo"] = precio_entrada - STOP_FIJO_ATR * atr_entrada
-        stops["stop_trailing"] = extremo - STOP_TRAILING_ATR * atr_entrada
-        stops["stop_activo"] = stops[["stop_fijo", "stop_trailing"]].max(axis=1)
-    else:
-        # Espejo de la compra: mínimo alcanzado desde la entrada hasta AYER, nunca por encima de la entrada
-        extremo = precios_operacion["low"].cummin().shift(1, fill_value=precio_entrada).clip(upper=precio_entrada)
-        stops["stop_fijo"] = precio_entrada + STOP_FIJO_ATR * atr_entrada
-        stops["stop_trailing"] = extremo + STOP_TRAILING_ATR * atr_entrada
-        stops["stop_activo"] = stops[["stop_fijo", "stop_trailing"]].min(axis=1)
-    return stops
-
-
-def calcular_rango_esperado(cierre: pd.Series, indicadores: pd.DataFrame) -> pd.DataFrame:
-    """Rango de precio esperado (solo informativo): soporte y resistencia más cercanos.
-
-    Recibe el cierre y los indicadores (niveles de Fibonacci, Bollinger y atr) con el
-    mismo índice; sirve para muchas filas a la vez. El soporte es el nivel más alto por
-    debajo del cierre y la resistencia el más bajo por encima, si están a como mucho
-    RANGO_NIVEL_CERCANO_ATR × ATR; si no hay nivel cercano por un lado, se usa el cierre
-    ∓ 2 × ATR. Devuelve soporte, resistencia y de qué tipo es cada uno ('nivel' o 'atr').
-    """
-    niveles = indicadores[list(COLUMNAS_NIVELES_PRECIO)]
-    atr = indicadores["atr"]
-    distancia_maxima = RANGO_NIVEL_CERCANO_ATR * atr
-
-    por_debajo = niveles.where(niveles.lt(cierre, axis=0) & niveles.ge(cierre - distancia_maxima, axis=0))
-    por_encima = niveles.where(niveles.gt(cierre, axis=0) & niveles.le(cierre + distancia_maxima, axis=0))
-
-    rango = pd.DataFrame(index=cierre.index)
-    rango["soporte"] = por_debajo.max(axis=1)
-    rango["resistencia"] = por_encima.min(axis=1)
-    rango["tipo_soporte"] = np.where(rango["soporte"].notna(), "nivel", "atr")
-    rango["tipo_resistencia"] = np.where(rango["resistencia"].notna(), "nivel", "atr")
-    rango["soporte"] = rango["soporte"].fillna(cierre - RANGO_SIN_NIVEL_ATR * atr)
-    rango["resistencia"] = rango["resistencia"].fillna(cierre + RANGO_SIN_NIVEL_ATR * atr)
-    return rango
-
-
-def calcular_volatilidad_y_sharpe(cierres: pd.Series) -> dict:
-    """Volatilidad histórica anualizada y Sharpe Ratio (tasa libre de riesgo = 0 %).
-
-    Recibe los cierres de UN ticker ordenados por fecha. Usa los retornos diarios:
-    volatilidad = desviación típica × √252; Sharpe = media / desviación típica × √252.
-    Devuelve un diccionario con volatilidad, sharpe, retorno_medio_anual y sesiones.
-    Lanza ValueError si hay menos de 2 retornos o la desviación típica es 0.
-    """
-    retornos = cierres.pct_change().dropna()
-    if len(retornos) < 2 or retornos.std() == 0:
-        raise ValueError("Hacen falta al menos 2 retornos con alguna variación")
-    raiz_anual = np.sqrt(SESIONES_POR_ANIO)
-    return {
-        "volatilidad": retornos.std() * raiz_anual,
-        "sharpe": retornos.mean() / retornos.std() * raiz_anual,
-        "retorno_medio_anual": retornos.mean() * SESIONES_POR_ANIO,
-        "sesiones": len(retornos),
-    }
-
-
-# --- Estacionalidad (informativa) ---
-ESTACIONALIDAD_ANIOS = 5
-NOMBRES_MESES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
-NOMBRES_DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes")
-
-
-def calcular_estacionalidad(cierres: pd.Series, anios: int = ESTACIONALIDAD_ANIOS) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Estacionalidad de UN ticker en los últimos `anios` años completos de datos.
-
-    Recibe los cierres con índice de fechas ordenado. Solo usa meses completos (descarta
-    el mes en curso). Devuelve dos tablas: por mes del año (retorno medio, % de años en
-    positivo y número de años) y por día de la semana (retorno diario medio y número de días).
-    Lanza ValueError si no hay datos en el periodo.
-    """
-    inicio = cierres.index.max() - pd.DateOffset(years=anios)
-    # Se toma también el cierre previo al inicio para poder calcular el primer retorno
-    cierres = cierres[cierres.index >= inicio - pd.DateOffset(months=1)]
-    if cierres.empty:
-        raise ValueError("No hay cierres en el periodo pedido")
-
-    cierres_mensuales = cierres.resample("ME").last()
-    retornos_mensuales = cierres_mensuales.pct_change()
-    retornos_mensuales = retornos_mensuales[retornos_mensuales.index > inicio]
-    # BMonthEnd(0) lleva la fecha al último día hábil de su mes. Si el último dato es anterior
-    # a ese día, el mes todavía no ha terminado y su retorno se descarta.
-    ultima_fecha = cierres.index.max()
-    if ultima_fecha < ultima_fecha + pd.offsets.BMonthEnd(0):
-        retornos_mensuales = retornos_mensuales.iloc[:-1]  # el mes en curso no está completo
-    retornos_mensuales = retornos_mensuales.dropna()
-    # Se agrupa por número de mes (1-12) y después se cambia el número por su nombre
-    por_mes = retornos_mensuales.groupby(retornos_mensuales.index.month).agg(
-        retorno_medio="mean", porcentaje_anios_positivos=lambda r: (r > 0).mean(), anios="count")
-    por_mes.index = [NOMBRES_MESES[mes - 1] for mes in por_mes.index]
-
-    retornos_diarios = cierres.pct_change()
-    retornos_diarios = retornos_diarios[retornos_diarios.index >= inicio].dropna()
-    por_dia = retornos_diarios.groupby(retornos_diarios.index.dayofweek).agg(retorno_medio="mean", dias="count")
-    por_dia.index = [NOMBRES_DIAS[dia] for dia in por_dia.index]
-    return por_mes, por_dia
 
 
 # --- Noticias: a qué empresa se refiere un titular (notebook 06 y app.py) ---

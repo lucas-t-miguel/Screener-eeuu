@@ -11,9 +11,11 @@ import re
 import time
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pandas_ta as ta
 import requests
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 # --- Rutas ---
 CARPETA_CACHE = Path(__file__).resolve().parent / "data" / "cache"
@@ -371,3 +373,50 @@ def buscar_titulares_newsapi(palabras: list[str], desde: pd.Timestamp) -> list[d
     if respuesta.status_code != 200:
         raise RuntimeError(f"NewsAPI respondió {respuesta.status_code}: {datos.get('code')} - {datos.get('message')}")
     return datos["articles"]
+
+
+# --- Evaluación de los modelos de sentimiento (notebooks 07 y 08) ---
+CLASES_SENTIMIENTO = ("negative", "neutral", "positive")
+# Remuestreos del bootstrap para el intervalo de confianza del F1 macro
+BOOTSTRAP_REMUESTREOS = 1000
+
+
+def evaluar_clasificacion(reales, predichas, clases: tuple[str, ...] = CLASES_SENTIMIENTO,
+                          remuestreos: int = BOOTSTRAP_REMUESTREOS) -> dict:
+    """Mide un clasificador de sentimiento comparando sus predicciones con las etiquetas reales.
+
+    Recibe las etiquetas reales y las predichas (listas o series de la misma longitud, con
+    valores de `clases`). Devuelve un diccionario con el F1 macro, su intervalo de confianza
+    del 95 % por bootstrap (se repite el cálculo sobre `remuestreos` muestras con
+    reemplazamiento de las mismas frases, con SEMILLA, y se toman los percentiles 2,5 y 97,5),
+    la exactitud, la matriz de confusión (filas = real, columnas = predicha) y el número de frases.
+    Lanza ValueError si las longitudes no coinciden, no hay frases o aparece una clase desconocida.
+    """
+    reales, predichas = np.asarray(reales), np.asarray(predichas)
+    if len(reales) != len(predichas) or len(reales) == 0:
+        raise ValueError(f"Hacen falta las mismas frases en reales ({len(reales)}) y predichas ({len(predichas)}), y al menos una")
+    desconocidas = (set(reales) | set(predichas)) - set(clases)
+    if desconocidas:
+        raise ValueError(f"Clases desconocidas: {desconocidas} (se esperaban {clases})")
+
+    # zero_division=0: una clase que el modelo nunca predice tiene F1 = 0 (sin aviso)
+    def f1_macro(r, p):
+        return f1_score(r, p, labels=list(clases), average="macro", zero_division=0)
+
+    generador = np.random.default_rng(SEMILLA)
+    f1_remuestreos = []
+    for _ in range(remuestreos):
+        indices = generador.integers(0, len(reales), size=len(reales))
+        f1_remuestreos.append(f1_macro(reales[indices], predichas[indices]))
+    ic_inferior, ic_superior = np.percentile(f1_remuestreos, [2.5, 97.5])
+
+    matriz = pd.DataFrame(confusion_matrix(reales, predichas, labels=list(clases)),
+                          index=pd.Index(clases, name="real"), columns=pd.Index(clases, name="predicha"))
+    return {
+        "f1_macro": float(f1_macro(reales, predichas)),
+        "f1_ic_inferior": float(ic_inferior),
+        "f1_ic_superior": float(ic_superior),
+        "exactitud": float(accuracy_score(reales, predichas)),
+        "matriz_confusion": matriz,
+        "frases": len(reales),
+    }

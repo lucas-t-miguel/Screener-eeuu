@@ -225,7 +225,7 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 | M2 | Transformer encoder con embedding posicional | Solo con las frases de PhraseBank | `Transformers.ipynb` (`TransformerEncoder`, `PositionalEmbedding`) |
 | M3 | La misma red que M2, preentrenada como BERT | Primero adivina palabras tapadas en el corpus propio; después se ajusta con PhraseBank como en clase (congelado y después descongelado) | `bert_simplificado.ipynb` |
 
-- **M2 y M3 comparten** vocabulario (`TextVectorization` por palabras, con el token `[MASK]` como en clase), arquitectura y tamaño, para que la única diferencia sea el preentrenamiento. Tamaño pequeño: que se entrene en minutos (el preentrenamiento, una sola vez, guardado en `data/modelos/`).
+- **M2 y M3 comparten** vocabulario (`TextVectorization` por palabras con el token `[mask]`, aprendido con el corpus y el entrenamiento de PhraseBank), arquitectura (`PositionalEmbedding` + `TransformerEncoder`) y tamaño (el de `bert_simplificado`: 128 dimensiones, 8 cabezas, 128 neuronas; frases de hasta 64 palabras), para que la única diferencia sea el preentrenamiento. Preentrenamiento: el corpus entero con 2 épocas, como en los apuntes (unos 66 min, medido el 1 nov), una sola vez y guardado en `data/modelos/`.
 - Antes de descargar el diccionario Loughran-McDonald, mostrar su fuente, formato y licencia (regla 4).
 - Con el desequilibrio de clases, se valoran pesos de clase en M2 y M3 viendo la validación.
 

@@ -5,6 +5,7 @@ archivo no ejecuta nada. Cada función está aquí porque se usa en más de
 un notebook (o en un notebook y en app.py).
 """
 
+import hashlib
 import json
 import os
 import re
@@ -19,6 +20,26 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 # --- Rutas ---
 CARPETA_CACHE = Path(__file__).resolve().parent / "data" / "cache"
+
+# --- Ficheros descargados a mano (notebooks 03, 06 y 07) ---
+
+
+def comprobar_descarga_manual(ruta: Path, sha256_esperado: str, enlace_descarga: str) -> None:
+    """Comprueba que un fichero descargado a mano está en su sitio y es exactamente el esperado.
+
+    Recibe la ruta donde debe estar, su huella SHA-256 y el enlace de donde se descarga.
+    La huella se calcula leyendo el fichero por bloques, sin cargarlo entero en memoria.
+    Lanza FileNotFoundError si no está (diciendo de dónde bajarlo) y RuntimeError si la
+    huella no coincide (otra versión del fichero o una descarga incompleta).
+    """
+    if not ruta.exists():
+        raise FileNotFoundError(f"Falta {ruta.name}: descárgalo de {enlace_descarga} y guárdalo como {ruta}")
+    with open(ruta, "rb") as fichero:
+        huella = hashlib.file_digest(fichero, "sha256").hexdigest()
+    if huella != sha256_esperado:
+        raise RuntimeError(f"{ruta.name} no es el fichero esperado (su huella SHA-256 no coincide): "
+                           f"¿otra versión o una descarga incompleta? Vuelve a bajarlo de {enlace_descarga}")
+
 
 # --- Reproducibilidad ---
 # Semilla de todas las particiones, muestreos e inicializaciones de redes, para que Restart & Run All dé las mismas cifras
@@ -420,3 +441,35 @@ def evaluar_clasificacion(reales, predichas, clases: tuple[str, ...] = CLASES_SE
         "matriz_confusion": matriz,
         "frases": len(reales),
     }
+
+
+# --- M1: diccionario Loughran-McDonald (notebooks 07 y 08) ---
+
+
+def tono_loughran_mcdonald(texto: str, palabras_negativas: set[str], palabras_positivas: set[str]) -> float:
+    """Tono de un texto según el diccionario: (palabras positivas - negativas) / palabras del texto.
+
+    Recibe el texto y las dos listas de palabras en mayúsculas. Las palabras del texto son
+    los trozos de solo letras, pasados a mayúsculas (los números y signos no cuentan).
+    Devuelve un número entre -1 y 1; 0 si el texto no tiene ninguna palabra.
+    """
+    palabras = re.findall(r"[A-Z]+", texto.upper())
+    if not palabras:
+        return 0.0
+    positivas = sum(palabra in palabras_positivas for palabra in palabras)
+    negativas = sum(palabra in palabras_negativas for palabra in palabras)
+    return (positivas - negativas) / len(palabras)
+
+
+def clasificar_tono(tono: float, umbral: float) -> str:
+    """Convierte un tono en clase: 'positive' si supera el umbral, 'negative' si baja de -umbral y 'neutral' si no.
+
+    Lanza ValueError si el umbral es negativo.
+    """
+    if umbral < 0:
+        raise ValueError(f"El umbral debe ser 0 o positivo, se recibió {umbral}")
+    if tono > umbral:
+        return "positive"
+    if tono < -umbral:
+        return "negative"
+    return "neutral"

@@ -115,7 +115,7 @@ PCD/
 ├── 01_universo_tickers.ipynb     # SEC: lista de empresas → NASDAQ + NYSE
 ├── 02_precios_y_recorte.ipynb    # yfinance: precios + recorte a 1.000 empresas + 10 años de histórico
 ├── 03_sec_datos_estructurados.ipynb  # SEC: submissions (informes + sector) + cifras financieras (frames)
-├── 04_indicadores_tecnicos.ipynb # RSI, MACD, Bollinger, Fibonacci, CMF, ADX, EMA, Donchian, ATR
+├── 04_indicadores_tecnicos.ipynb # los 5 indicadores de las señales: ADX, EMA, CMF, RSI, Donchian
 ├── 05_senales_y_riesgo.ipynb     # régimen de mercado y señales de compra/venta
 ├── 06_textos.ipynb               # noticias (FNSPID + NewsAPI), informes SEC y corpus de preentrenamiento
 ├── 07_modelos_sentimiento.ipynb  # PhraseBank; M1 diccionario, M2 Transformer, M3 BERT; comparación
@@ -176,9 +176,8 @@ Los notebooks van en la raíz junto a `funciones.py` para que `from funciones im
 | ADX | 14 sesiones; umbral 25 | Régimen de mercado |
 | Cruce de EMA | EMA(4) vs EMA(8) | Señal en régimen de tendencia |
 | Canal de Donchian | 20 sesiones (sin el día de hoy) | Señal de ruptura en cualquier régimen |
-| MACD, Bollinger, Fibonacci, ATR | 12/26/9; 20 y ±2σ; 45 sesiones; 14 sesiones | Calculados, no intervienen en las señales. Contexto para `app.py` si se hace |
 
-Se usa `pandas-ta`; Donchian, Bollinger (ddof=0), Fibonacci y CMF se corrigieron o se escribieron a mano en el notebook 04 (detalle en la bitácora).
+Se usa `pandas-ta`; Donchian y CMF se corrigieron o se escribieron a mano en el notebook 04 (detalle en la bitácora). Solo se calculan los indicadores que usa alguna señal: MACD, Bollinger, Fibonacci y ATR se quitaron el 1 nov 2026 (si `app.py` necesitara alguno para un gráfico, se calcularía allí).
 
 ### 8.3 Régimen de mercado y señales (notebook 05) — hecho
 
@@ -274,7 +273,7 @@ Se decide al final, solo si sobra tiempo. Idea mínima: elegir una empresa y ver
 
 Se mencionan en la memoria, sin implementarse:
 
-- **Retirado el 1 nov 2026:** backtesting completo (stops, tamaño de posición, cartera, CAGR, drawdown) y screener del día; rango de precio esperado, volatilidad con Sharpe y estacionalidad; sentimiento de los informes SEC y la comparación noticias frente a informes; TF-IDF con red densa; GPT propio (encoder frente a decoder, perplejidad); tokenizador WordPiece.
+- **Retirado el 1 nov 2026:** los indicadores que no usa ninguna señal (MACD, Bollinger, Fibonacci y ATR); backtesting completo (stops, tamaño de posición, cartera, CAGR, drawdown) y screener del día; rango de precio esperado, volatilidad con Sharpe y estacionalidad; sentimiento de los informes SEC y la comparación noticias frente a informes; TF-IDF con red densa; GPT propio (encoder frente a decoder, perplejidad); tokenizador WordPiece.
 - **Retirado el 19 oct 2026:** reglas explícitas frente a regresión logística; sentimiento por empresa frente a por sector; señales con régimen frente a sin régimen; FinBERT (además, se entrenó con PhraseBank, así que evaluarlo ahí no sería limpio); más histórico de noticias (FNSPID de 23 GB, GDELT, RSS diario); bloques temáticos; 8-K.
 - Momentum cross-sectional, amplitud de mercado, automatización diaria y notificaciones.
 

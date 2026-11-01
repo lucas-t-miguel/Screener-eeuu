@@ -19,7 +19,7 @@ Proyecto de la asignatura **Proyecto de Ciencia de Datos**. Filtra acciones de N
 | `09_backtesting.ipynb` | Simulación histórica y comparación con veto por sentimiento *(pendiente)* |
 | `app.py` | Interfaz Streamlit con el screener del día *(pendiente)* |
 
-Las funciones que usan varios notebooks están en `funciones.py`. Las especificaciones completas están en `CLAUDE.md`.
+Las funciones que usan varios notebooks están en `funciones.py`.
 
 ## Cómo ejecutarlo
 

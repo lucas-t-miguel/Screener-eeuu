@@ -123,7 +123,7 @@ def obtener_cik(ticker: str, universo: pd.DataFrame) -> str:
     return coincidencias.iloc[0]
 
 
-# --- Indicadores técnicos (sección 8.2 del CLAUDE.md) ---
+# --- Indicadores técnicos ---
 RSI_SESIONES = 14
 MACD_RAPIDA, MACD_LENTA, MACD_SENAL = 12, 26, 9
 BOLLINGER_SESIONES, BOLLINGER_DESVIACIONES = 20, 2
@@ -217,7 +217,7 @@ def calcular_indicadores(precios: pd.DataFrame) -> pd.DataFrame:
     return indicadores
 
 
-# --- Régimen de mercado y señales (sección 8.3 del CLAUDE.md) ---
+# --- Régimen de mercado y señales ---
 ADX_UMBRAL_TENDENCIA = 25
 RSI_SOBREVENTA, RSI_SOBRECOMPRA = 30, 70
 CMF_UMBRAL = 0.07
@@ -292,7 +292,7 @@ def detectar_senales(precios: pd.DataFrame, indicadores: pd.DataFrame) -> pd.Dat
     return senales
 
 
-# --- Riesgo y gestión de la operación (sección 8.4 del CLAUDE.md) ---
+# --- Riesgo y gestión de la operación ---
 STOP_FIJO_ATR = 2
 STOP_TRAILING_ATR = 3
 RANGO_SIN_NIVEL_ATR = 2
@@ -385,7 +385,7 @@ def calcular_volatilidad_y_sharpe(cierres: pd.Series) -> dict:
     }
 
 
-# --- Estacionalidad (sección 8.5 del CLAUDE.md, informativa) ---
+# --- Estacionalidad (informativa) ---
 ESTACIONALIDAD_ANIOS = 5
 NOMBRES_MESES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 NOMBRES_DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes")

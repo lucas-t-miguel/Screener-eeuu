@@ -119,6 +119,7 @@ PCD/
 ├── README.md
 ├── CLAUDE.md
 ├── funciones.py                  # funciones reutilizables (datos, indicadores, señales, textos, evaluación)
+├── capas_keras.py                # capas de M2 y M3 copiadas del 07 (fija TensorFlow); solo la importa el 08
 ├── 01_universo_tickers.ipynb     # SEC: lista de empresas → NASDAQ + NYSE
 ├── 02_precios_y_recorte.ipynb    # yfinance: precios + recorte a 1.000 empresas + 10 años de histórico
 ├── 03_sec_datos_estructurados.ipynb  # SEC: submissions (informes + sector) + cifras financieras (frames)
@@ -231,9 +232,10 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 
 **Aplicación (notebook 08)**
 
-- Los tres modelos puntúan todos los titulares de FNSPID que mencionan a su empresa. Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
+- Los tres modelos puntúan todos los titulares de FNSPID que mencionan a su empresa (hecho: 192.069 titulares, `data/cache/sentimiento_titulares.parquet`). Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
 - **Validación fuera de dominio:** 300 titulares recientes de NewsAPI (como mucho 5 por empresa; 200 previstos, ampliados a 300 por el autor el 16 nov antes de etiquetar) etiquetados a mano por el autor en `etiquetas/titulares_a_mano.csv` (en git), con la regla de `etiquetas/regla_de_etiquetado.md` y una columna `trata_de_la_empresa` para los que el filtro dejó pasar por error. Se evalúan con la misma función y `comparar_f1` que PhraseBank, con los 200 y solo con los que tratan de la empresa.
-- **Excepción a la regla 5 (decisión del autor, 16 nov):** las capas (`TransformerEncoder`, `PositionalEmbedding`) y la estandarización del vocabulario se copian en `funciones.py` para el 08, y el 07 conserva las suyas para no perder sus salidas de entrenamiento.
+- **Excepción a la regla 5 (decisión del autor, 16 nov):** las capas (`TransformerEncoder`, `PositionalEmbedding`) y la estandarización del vocabulario se copian en **`capas_keras.py`**, que solo importa el 08; el 07 conserva las suyas para no perder sus salidas de entrenamiento. Van fuera de `funciones.py` porque necesitan Keras: `capas_keras.py` fija TensorFlow al importarse, y así los notebooks 01–07 no cargan Keras. El 08 comprueba que la copia es fiel repitiendo las predicciones de validación del 07 (100 %).
+- **M3 oficial: el corregido** (`m3_mezclado_descongelado.keras`, sección 10 del 07): el preentrenamiento original mezclaba el corpus con `shuffle(1000)` y dejaba titulares e informes en bloques. Test: 0,586 (0,54–0,62); M3 − M2 = −0,087 (−0,13 a −0,05).
 
 ### 8.7 Ingesta desde SEC EDGAR (notebooks 01, 03 y 06) — hecho
 

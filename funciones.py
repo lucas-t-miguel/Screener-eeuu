@@ -443,6 +443,36 @@ def evaluar_clasificacion(reales, predichas, clases: tuple[str, ...] = CLASES_SE
     }
 
 
+def comparar_f1(reales, predichas_a, predichas_b, clases: tuple[str, ...] = CLASES_SENTIMIENTO,
+                remuestreos: int = BOOTSTRAP_REMUESTREOS) -> dict:
+    """Diferencia de F1 macro entre dos modelos (a menos b) sobre las mismas frases, con su intervalo del 95 %.
+
+    El intervalo sale de un bootstrap emparejado: en cada remuestreo (con SEMILLA) se toman las
+    mismas frases para los dos modelos y se resta su F1 macro; se toman los percentiles 2,5 y 97,5.
+    Si el intervalo contiene el 0, la diferencia no es concluyente.
+    Lanza ValueError si las longitudes no coinciden o no hay frases.
+    """
+    reales, predichas_a, predichas_b = np.asarray(reales), np.asarray(predichas_a), np.asarray(predichas_b)
+    if not len(reales) == len(predichas_a) == len(predichas_b) or len(reales) == 0:
+        raise ValueError(f"Hacen falta las mismas frases en reales ({len(reales)}) y en los dos modelos "
+                         f"({len(predichas_a)} y {len(predichas_b)}), y al menos una")
+
+    def f1_macro(r, p):
+        return f1_score(r, p, labels=list(clases), average="macro", zero_division=0)
+
+    generador = np.random.default_rng(SEMILLA)
+    diferencias = []
+    for _ in range(remuestreos):
+        indices = generador.integers(0, len(reales), size=len(reales))
+        diferencias.append(f1_macro(reales[indices], predichas_a[indices]) - f1_macro(reales[indices], predichas_b[indices]))
+    ic_inferior, ic_superior = np.percentile(diferencias, [2.5, 97.5])
+    return {
+        "diferencia": float(f1_macro(reales, predichas_a) - f1_macro(reales, predichas_b)),
+        "ic_inferior": float(ic_inferior),
+        "ic_superior": float(ic_superior),
+    }
+
+
 # --- M1: diccionario Loughran-McDonald (notebooks 07 y 08) ---
 
 

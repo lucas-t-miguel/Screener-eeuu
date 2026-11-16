@@ -232,7 +232,8 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 **Aplicación (notebook 08)**
 
 - Los tres modelos puntúan todos los titulares de FNSPID que mencionan a su empresa. Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
-- **Validación fuera de dominio:** ~200 titulares recientes de NewsAPI etiquetados a mano por el autor (plantilla en el notebook), evaluados con la misma función que PhraseBank.
+- **Validación fuera de dominio:** 200 titulares recientes de NewsAPI (como mucho 5 por empresa) etiquetados a mano por el autor en `etiquetas/titulares_a_mano.csv` (en git), con la regla de `etiquetas/regla_de_etiquetado.md` y una columna `trata_de_la_empresa` para los que el filtro dejó pasar por error. Se evalúan con la misma función y `comparar_f1` que PhraseBank, con los 200 y solo con los que tratan de la empresa.
+- **Excepción a la regla 5 (decisión del autor, 16 nov):** las capas (`TransformerEncoder`, `PositionalEmbedding`) y la estandarización del vocabulario se copian en `funciones.py` para el 08, y el 07 conserva las suyas para no perder sus salidas de entrenamiento.
 
 ### 8.7 Ingesta desde SEC EDGAR (notebooks 01, 03 y 06) — hecho
 
@@ -248,7 +249,7 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 
 - Titulares de FNSPID que mencionan a su empresa, oct 2016 – jun 2020.
 - Si una empresa tiene varios titulares el mismo día, se agregan en un sentimiento diario (la regla se decide viendo los datos).
-- **Sin mirar al futuro:** comprobar primero si FNSPID trae hora de publicación (regla 4). La rentabilidad "posterior" empieza después de la publicación: del cierre del día de la noticia al cierre del día siguiente, y de ese cierre a 5 sesiones.
+- **Sin mirar al futuro:** FNSPID solo trae el día de publicación (el 96 % de los titulares tiene la hora `00:00:00`, comprobado el 16 nov). La rentabilidad "posterior" es **1 sesión**: del cierre del día de la noticia al cierre siguiente (decisión del autor, 16 nov; se descartó 5 sesiones). Las noticias de fin de semana, desde el último cierre anterior. Varios titulares de una empresa el mismo día: media de sus sentimientos (−1/0/1) y su signo. Intervalo de la diferencia: Welch, con su limitación anotada.
 - La rentabilidad **del mismo día** se muestra aparte y se explica como relación inflada: muchos titulares cuentan un movimiento que ya ha ocurrido ("X shares fall after earnings").
 - Resultado: rentabilidad media por grupo (positivo, neutral, negativo), diferencia entre positivo y negativo con intervalo de confianza del 95 %, **para cada uno de los tres modelos**. Desglose por sector Fama-French si da tiempo.
 

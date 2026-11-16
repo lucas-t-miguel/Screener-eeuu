@@ -232,7 +232,7 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 **Aplicación (notebook 08)**
 
 - Los tres modelos puntúan todos los titulares de FNSPID que mencionan a su empresa. Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
-- **Validación fuera de dominio:** 200 titulares recientes de NewsAPI (como mucho 5 por empresa) etiquetados a mano por el autor en `etiquetas/titulares_a_mano.csv` (en git), con la regla de `etiquetas/regla_de_etiquetado.md` y una columna `trata_de_la_empresa` para los que el filtro dejó pasar por error. Se evalúan con la misma función y `comparar_f1` que PhraseBank, con los 200 y solo con los que tratan de la empresa.
+- **Validación fuera de dominio:** 300 titulares recientes de NewsAPI (como mucho 5 por empresa; 200 previstos, ampliados a 300 por el autor el 16 nov antes de etiquetar) etiquetados a mano por el autor en `etiquetas/titulares_a_mano.csv` (en git), con la regla de `etiquetas/regla_de_etiquetado.md` y una columna `trata_de_la_empresa` para los que el filtro dejó pasar por error. Se evalúan con la misma función y `comparar_f1` que PhraseBank, con los 200 y solo con los que tratan de la empresa.
 - **Excepción a la regla 5 (decisión del autor, 16 nov):** las capas (`TransformerEncoder`, `PositionalEmbedding`) y la estandarización del vocabulario se copian en `funciones.py` para el 08, y el 07 conserva las suyas para no perder sus salidas de entrenamiento.
 
 ### 8.7 Ingesta desde SEC EDGAR (notebooks 01, 03 y 06) — hecho

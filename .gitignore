@@ -15,6 +15,8 @@ modelos/
 *.ckpt
 *.parquet
 *.csv
+# ...salvo el etiquetado a mano de los titulares (trabajo del autor, no se puede regenerar)
+!etiquetas/*.csv
 *.zip
 
 # Python y Jupyter

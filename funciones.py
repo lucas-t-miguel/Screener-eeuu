@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 import pandas_ta as ta
 import requests
+from scipy import stats
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 # --- Rutas ---
@@ -507,6 +508,23 @@ def tabla_diferencias(frases: pd.DataFrame, preguntas: dict, columna_real: str =
                            "¿concluyente?": "sí" if d["ic_inferior"] > 0 or d["ic_superior"] < 0 else "no (el 0 está dentro)"}
     return pd.DataFrame(filas).T
 
+
+
+# --- Noticias y bolsa (notebooks 08 y 09) ---
+def diferencia_medias_welch(grupo_a, grupo_b, confianza: float = 0.95) -> dict:
+    """Diferencia de medias (a menos b) con su intervalo de confianza de Welch y el p-valor.
+
+    Welch no supone que los dos grupos tengan la misma varianza. Supone observaciones independientes:
+    con eventos del mismo día o de la misma empresa, el intervalo sale algo más estrecho de lo que debería.
+    Lanza ValueError si algún grupo tiene menos de 2 valores.
+    """
+    grupo_a, grupo_b = np.asarray(grupo_a, dtype=float), np.asarray(grupo_b, dtype=float)
+    if len(grupo_a) < 2 or len(grupo_b) < 2:
+        raise ValueError(f"Hacen falta al menos 2 valores por grupo (hay {len(grupo_a)} y {len(grupo_b)})")
+    prueba = stats.ttest_ind(grupo_a, grupo_b, equal_var=False)
+    intervalo = prueba.confidence_interval(confianza)
+    return {"diferencia": float(grupo_a.mean() - grupo_b.mean()), "ic_inferior": float(intervalo.low),
+            "ic_superior": float(intervalo.high), "p_valor": float(prueba.pvalue), "n_a": len(grupo_a), "n_b": len(grupo_b)}
 
 # --- M1: diccionario Loughran-McDonald (notebooks 07 y 08) ---
 

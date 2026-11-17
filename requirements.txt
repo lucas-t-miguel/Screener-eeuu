@@ -25,3 +25,12 @@ streamlit==1.66.0
 # Notebooks
 jupyter==1.1.1
 ipykernel==6.29.5
+
+# M4 (notebook 07): FinBERT preentrenado, cargado con KerasHub sobre TensorFlow
+keras-hub==0.33.0
+tensorflow-text==2.21.1
+sentencepiece==0.2.3
+huggingface-hub==1.31.0
+safetensors==0.8.0
+# torch: solo para convertir una vez los pesos de FinBERT, que vienen en formato de PyTorch (con caché en data/modelos/finbert_pretrain/); nunca para entrenar
+torch==2.14.0

@@ -3,6 +3,8 @@
 Debe leerse íntegramente antes de generar o modificar código.
 
 > **Última revisión: 1 nov 2026.** Cambios del 1 nov (simplificación para dominar todo el código en la defensa): la **pregunta central** pasa a ser si hay relación entre las noticias y la bolsa; **híbrido**: se mantienen los indicadores y las señales técnicas (04 y 05), pero salen los stops, el Sharpe, la estacionalidad, el backtesting completo y el screener; **tres modelos de sentimiento** (diccionario, Transformer y BERT) con **código como el de los apuntes de clase**; los filings quedan solo como corpus de preentrenamiento. Antes: notebooks y alcance de Trade Recommender (11 oct), modelos propios y plan reducido (19 oct). El razonamiento de cada cambio está en la bitácora (sección 10).
+>
+> **17 nov 2026:** se añade **M4, FinBERT preentrenado** (sugerencia del tutor), sin quitar M1–M3; se añade después de haber mirado el test de M1–M3 (8.6).
 
 ---
 
@@ -70,7 +72,7 @@ Se responde en tres partes:
 | Visualización | `plotly` |
 | Datos SEC | APIs oficiales EDGAR (`data.sec.gov/submissions`, `data.sec.gov/api/xbrl/frames`) + `requests` y `BeautifulSoup` para el texto de los informes |
 | Noticias | FNSPID (titulares 2016–2020) y NewsAPI (plan gratuito, último mes) |
-| Sentimiento (PLN) | Diccionario Loughran-McDonald y modelos propios en `keras` 3 sobre TensorFlow, escritos **como en los apuntes de clase**: `TextVectorization` por palabras, capas `TransformerEncoder` y `PositionalEmbedding`, y el enmascarado de `bert_simplificado`. Ni Claude ni otro LLM por API |
+| Sentimiento (PLN) | Diccionario Loughran-McDonald y modelos propios en `keras` 3 sobre TensorFlow, escritos **como en los apuntes de clase**: `TextVectorization` por palabras, capas `TransformerEncoder` y `PositionalEmbedding`, y el enmascarado de `bert_simplificado`. **M4:** FinBERT preentrenado (`yiyanghkust/finbert-pretrain`, Apache-2.0) cargado con **KerasHub** (`keras-hub` 0.33, `tensorflow-text` 2.21.1) sobre TensorFlow; pesos del commit `88ab954`, convertidos una vez a `safetensors` con `torch` en el procesador (solo para esa conversión). Ni Claude ni otro LLM por API |
 | Evaluación | `scikit-learn` (partición, F1, matriz de confusión) |
 | Interfaz | Streamlit (≥ 1.66), opcional: se decide al final (8.10) |
 | Claves | `.env` + `python-dotenv` |
@@ -105,6 +107,7 @@ Se responde en tres partes:
 9. **Documentar decisión y razonamiento en el momento**, en la bitácora (sección 10).
 10. **Legibilidad por encima de todo.** Nombres en español y descriptivos, celdas cortas, nada de abstracciones innecesarias. Si una celda no se explica en 30 segundos, se simplifica o su detalle va a la bitácora.
 11. **Como en los apuntes.** Si un modelo o técnica aparece en los apuntes de clase, se usa la misma estructura y los mismos nombres. Cada diferencia se anota en el notebook con una línea **"Diferencia con los apuntes: …"** y su motivo (Keras 3, 3 clases, validación propia…).
+    **Excepción: M4** (8.6) parte de un modelo que no está en los apuntes: se carga con KerasHub en lugar de las capas de clase, usa el tokenizador WordPiece de FinBERT en lugar de `TextVectorization`, se ajusta en una sola fase con Adam(2e-5) y clasifica con la salida de `[CLS]`. Cada una de estas diferencias se anota igualmente con su línea "Diferencia con los apuntes".
 
 ---
 
@@ -126,7 +129,7 @@ PCD/
 ├── 04_indicadores_tecnicos.ipynb # los 5 indicadores de las señales: ADX, EMA, CMF, RSI, Donchian
 ├── 05_senales_y_riesgo.ipynb     # régimen de mercado y señales de compra/venta
 ├── 06_textos.ipynb               # noticias (FNSPID + NewsAPI), informes SEC y corpus de preentrenamiento
-├── 07_modelos_sentimiento.ipynb  # PhraseBank; M1 diccionario, M2 Transformer, M3 BERT; comparación
+├── 07_modelos_sentimiento.ipynb  # PhraseBank; M1 diccionario, M2 Transformer, M3 BERT, M4 FinBERT; comparación
 ├── 08_noticias_y_bolsa.ipynb     # sentimiento de los titulares, ~200 titulares a mano, estudio de eventos
 ├── 09_senales_y_noticias.ipynb   # señales técnicas con y sin noticias
 ├── app.py                        # opcional, se decide al final
@@ -135,7 +138,7 @@ PCD/
     ├── cache/                    # todo lo descargado o calculado, en parquet
     ├── raw/fnspid/               # FNSPID original (5,7 GB; no se sube a git)
     ├── phrasebank/               # Financial PhraseBank (CC BY-NC-SA 3.0, Malo et al. 2014)
-    └── modelos/                  # pesos de los modelos (.keras) y vocabularios
+    └── modelos/                  # pesos de los modelos (.keras, .weights.h5), vocabularios y finbert_pretrain/ (FinBERT convertido)
 ```
 
 Los notebooks van en la raíz junto a `funciones.py` para que `from funciones import ...` funcione sin trucos de rutas.
@@ -218,21 +221,23 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 
 - **Etiquetas:** Financial PhraseBank, variante 50Agree sin repetidas: 4.836 frases. **Partición estratificada 60/20/20** con `SEMILLA = 42`, la misma para todos los modelos (hecho). La validación elige umbrales, tamaños y épocas; **el test se mira una sola vez**, al final, con todos los modelos a la vez. (Diferencia con los apuntes: allí se valida sobre el test, que es una fuga de información.)
 - **Métricas:** F1 macro (principal), exactitud y matriz de confusión, con **intervalo de confianza del 95 % del F1 macro por bootstrap** (1.000 remuestreos), en una única función de `funciones.py` que también usa el 08. Referencia mínima: decir siempre "neutral" (F1 macro 0,248 en validación). Sensibilidad: el subconjunto del test que está en AllAgree.
-- **Tres modelos, tres formas de entrenar:**
+- **Cuatro modelos, cuatro formas de conseguir un modelo de sentimiento** (M4 añadido el 17 nov):
 
 | Modelo | Qué es | Cómo aprende | Apuntes de referencia |
 |---|---|---|---|
 | M1 | Diccionario Loughran-McDonald: cuenta palabras positivas y negativas | No se entrena; solo el umbral de "neutral" se elige en validación | — (fuera de los apuntes: es el estándar en finanzas) |
 | M2 | Transformer encoder con embedding posicional | Solo con las frases de PhraseBank | `Transformers.ipynb` (`TransformerEncoder`, `PositionalEmbedding`) |
 | M3 | La misma red que M2, preentrenada como BERT | Primero adivina palabras tapadas en el corpus propio; después se ajusta con PhraseBank como en clase (congelado y después descongelado) | `bert_simplificado.ipynb` |
+| M4 | FinBERT: BERT base (110 M de parámetros) preentrenado por otros con 4.900 M de palabras financieras (10-K/10-Q, conferencias de resultados e informes de analistas) | Se ajusta entero con PhraseBank en una sola fase: Adam(2e-5), hasta 136 tokens, cabeza `[CLS]` + Dropout(0,1) + Dense(3), sin pesos de clase, EarlyStopping (paciencia 3) | Cercano a `bert_simplificado`, con las excepciones de la regla 11 |
 
 - **M2 y M3 comparten** vocabulario (`TextVectorization` por palabras con el token `[mask]`, aprendido con el corpus y el entrenamiento de PhraseBank), arquitectura (`PositionalEmbedding` + `TransformerEncoder`) y tamaño (el de `bert_simplificado`: 128 dimensiones, 8 cabezas, 128 neuronas; frases de hasta 64 palabras), para que la única diferencia sea el preentrenamiento. Preentrenamiento: el corpus entero con 2 épocas, como en los apuntes (unos 66 min, medido el 1 nov), una sola vez y guardado en `data/modelos/`.
 - Antes de descargar el diccionario Loughran-McDonald, mostrar su fuente, formato y licencia (regla 4).
 - Con el desequilibrio de clases, se valoran pesos de clase en M2 y M3 viendo la validación.
+- **M4, FinBERT preentrenado (17 nov, sugerencia del tutor):** lo habitual es partir de un BERT preentrenado a gran escala, porque preentrenar uno propio da peores resultados (M3: 0,586 en el test). Es **solo el modelo preentrenado** (FinVocab en minúsculas, 30.873 piezas) y **no ha visto PhraseBank**. Quedan **excluidos** ProsusAI/finbert (se ajustó con Financial PhraseBank y habría visto el test) y finbert-tone (ya es un clasificador de sentimiento ajustado por otros). **Plan B**, solo si FinBERT no se pudiera cargar (decidido antes de ver resultados): `nlpaueb/sec-bert-base`. **Transparencia:** M4 se añade **después de haber mirado el test de M1–M3**, por sugerencia del tutor y no por los resultados; consta en el notebook y en la bitácora, y todas sus decisiones (136 tokens, Adam(2e-5) fijo, una fase, cabeza `[CLS]`, GELU exacta) se fijan antes de entrenarlo. Detalles técnicos: KerasHub no lee el `config.json` de 2020 (sin `model_type`) ni `pytorch_model.bin`, así que el 07 descarga el commit `88ab954`, comprueba su SHA-256, añade `model_type` y convierte los pesos del encoder a `safetensors` (con caché); KerasHub usa la GELU aproximada y el 07 la cambia por la exacta del BERT original (salida idéntica a la de `transformers`, diferencia < 2e-5). Los pesos ajustados se guardan como `m4_finbert.weights.h5` (sin el estado del optimizador).
 
 **Aplicación (notebook 08)**
 
-- Los tres modelos puntúan todos los titulares de FNSPID que mencionan a su empresa (hecho: 192.069 titulares, `data/cache/sentimiento_titulares.parquet`). Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
+- Los modelos puntúan todos los titulares de FNSPID que mencionan a su empresa (hecho con M1–M3: 192.069 titulares, `data/cache/sentimiento_titulares.parquet`; M4 se añade después, por grupos de longitud: con la cabeza `[CLS]` el resultado no depende del relleno). Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
 - **Validación fuera de dominio:** 300 titulares recientes de NewsAPI (como mucho 5 por empresa; 200 previstos, ampliados a 300 por el autor el 16 nov antes de etiquetar) etiquetados a mano por el autor en `etiquetas/titulares_a_mano.csv` (en git), con la regla de `etiquetas/regla_de_etiquetado.md` y una columna `trata_de_la_empresa` para los que el filtro dejó pasar por error. Se evalúan con la misma función y `comparar_f1` que PhraseBank, con los 200 y solo con los que tratan de la empresa.
 - **Excepción a la regla 5 (decisión del autor, 16 nov):** las capas (`TransformerEncoder`, `PositionalEmbedding`) y la estandarización del vocabulario se copian en **`capas_keras.py`**, que solo importa el 08; el 07 conserva las suyas para no perder sus salidas de entrenamiento. Van fuera de `funciones.py` porque necesitan Keras: `capas_keras.py` fija TensorFlow al importarse, y así los notebooks 01–07 no cargan Keras. El 08 comprueba que la copia es fiel repitiendo las predicciones de validación del 07 (100 %).
 - **M3 oficial: el corregido** (`m3_mezclado_descongelado.keras`, sección 10 del 07): el preentrenamiento original mezclaba el corpus con `shuffle(1000)` y dejaba titulares e informes en bloques. Test: 0,586 (0,54–0,62); M3 − M2 = −0,087 (−0,13 a −0,05).
@@ -272,7 +277,7 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 
 Es la parte que más valora el profesor. Dos comparaciones, diseñadas **antes** de ver resultados, reportadas tal cual salgan y **cortas** (una tabla o un gráfico y unas pocas frases):
 
-1. **Tres formas de entrenar un modelo de sentimiento (07 y 08).** Tabla de M1, M2 y M3 sobre el test de PhraseBank y sobre los ~200 titulares a mano. Preguntas: ¿aprender de ejemplos supera a una lista de palabras hecha por expertos (M1 frente a M2)? ¿Aporta preentrenar (M2 frente a M3)? Una diferencia dentro del intervalo de confianza no se presenta como mejora.
+1. **Cuatro formas de conseguir un modelo de sentimiento (07 y 08).** Tabla de M1, M2, M3 y M4 sobre el test de PhraseBank y sobre los 300 titulares a mano. Preguntas: ¿aprender de ejemplos supera a una lista de palabras hecha por expertos (M2 − M1)? ¿Aporta preentrenar (M3 − M2)? Esta es **la única comparación limpia del preentrenamiento**: M2 y M3 comparten vocabulario, arquitectura, tamaño y datos de ajuste. **M4 − M2 y M4 − M3 comparan recetas completas** (partir de un BERT preentrenado por otros frente a entrenar desde cero o preentrenar uno propio), **no el tamaño del preentrenamiento**: entre M3 y M4 cambian a la vez el tamaño de la red, el corpus, el tokenizador, la cabeza y el procedimiento de ajuste. Una diferencia dentro del intervalo de confianza no se presenta como mejora.
 2. **Noticias y bolsa (08 y 09).** ¿Hay relación entre el sentimiento y la rentabilidad posterior? ¿El modelo que mejor clasifica encuentra más relación que el diccionario? ¿Cambia el resultado de las señales técnicas con noticias positivas o negativas?
 
 ### 8.10 Interfaz (`app.py`) — opcional
@@ -284,7 +289,7 @@ Se decide al final, solo si sobra tiempo. Idea mínima: elegir una empresa y ver
 Se mencionan en la memoria, sin implementarse:
 
 - **Retirado el 1 nov 2026:** los indicadores que no usa ninguna señal (MACD, Bollinger, Fibonacci y ATR); backtesting completo (stops, tamaño de posición, cartera, CAGR, drawdown) y screener del día; rango de precio esperado, volatilidad con Sharpe y estacionalidad; sentimiento de los informes SEC y la comparación noticias frente a informes; TF-IDF con red densa; GPT propio (encoder frente a decoder, perplejidad); tokenizador WordPiece.
-- **Retirado el 19 oct 2026:** reglas explícitas frente a regresión logística; sentimiento por empresa frente a por sector; señales con régimen frente a sin régimen; FinBERT (además, se entrenó con PhraseBank, así que evaluarlo ahí no sería limpio); más histórico de noticias (FNSPID de 23 GB, GDELT, RSS diario); bloques temáticos; 8-K.
+- **Retirado el 19 oct 2026:** reglas explícitas frente a regresión logística; sentimiento por empresa frente a por sector; señales con régimen frente a sin régimen; FinBERT de ProsusAI y finbert-tone (ya ajustados con datos de sentimiento; el de ProsusAI, con PhraseBank, así que evaluarlo ahí no sería limpio; el FinBERT **solo preentrenado** entra como M4 el 17 nov); más histórico de noticias (FNSPID de 23 GB, GDELT, RSS diario); bloques temáticos; 8-K.
 - Momentum cross-sectional, amplitud de mercado, automatización diaria y notificaciones.
 
 **Si vamos justos se recorta, en este orden:** el desglose por sector, la parte AllAgree, `app.py`. Nunca el sentimiento ni las dos comparaciones.

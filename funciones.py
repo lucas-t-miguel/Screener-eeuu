@@ -473,6 +473,41 @@ def comparar_f1(reales, predichas_a, predichas_b, clases: tuple[str, ...] = CLAS
     }
 
 
+
+def tabla_f1(evaluaciones: dict) -> pd.DataFrame:
+    """Tabla con el F1 macro, su intervalo del 95 % y la exactitud de cada evaluación, con 3 decimales.
+
+    Recibe un diccionario {nombre: resultado de evaluar_clasificacion}; los nombres pasan a ser las filas.
+    Lanza ValueError si está vacío.
+    """
+    if not evaluaciones:
+        raise ValueError("No hay ninguna evaluación que poner en la tabla")
+    return pd.DataFrame({
+        nombre: {"F1 macro": e["f1_macro"], "IC 95 % inferior": e["f1_ic_inferior"],
+                 "IC 95 % superior": e["f1_ic_superior"], "exactitud": e["exactitud"]}
+        for nombre, e in evaluaciones.items()
+    }).T.round(3)
+
+
+def tabla_diferencias(frases: pd.DataFrame, preguntas: dict, columna_real: str = "etiqueta") -> pd.DataFrame:
+    """Diferencia de F1 macro de cada pregunta (comparar_f1), con su intervalo y si el 0 queda fuera de él.
+
+    `frases` tiene la etiqueta real (`columna_real`) y una columna por modelo con sus predicciones;
+    `preguntas` es {pregunta: (modelo_a, modelo_b)}, y la diferencia es a menos b.
+    Lanza ValueError si falta la columna de algún modelo.
+    """
+    faltan = {modelo for par in preguntas.values() for modelo in par} - set(frases.columns)
+    if faltan:
+        raise ValueError(f"Faltan las predicciones de: {sorted(faltan)}")
+    filas = {}
+    for pregunta, (modelo_a, modelo_b) in preguntas.items():
+        d = comparar_f1(frases[columna_real], frases[modelo_a], frases[modelo_b])
+        filas[pregunta] = {"diferencia": round(d["diferencia"], 3), "IC 95 % inferior": round(d["ic_inferior"], 3),
+                           "IC 95 % superior": round(d["ic_superior"], 3),
+                           "¿concluyente?": "sí" if d["ic_inferior"] > 0 or d["ic_superior"] < 0 else "no (el 0 está dentro)"}
+    return pd.DataFrame(filas).T
+
+
 # --- M1: diccionario Loughran-McDonald (notebooks 07 y 08) ---
 
 

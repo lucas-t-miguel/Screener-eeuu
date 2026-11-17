@@ -17,6 +17,7 @@ modelos/
 *.csv
 # ...salvo el etiquetado a mano de los titulares (trabajo del autor, no se puede regenerar)
 !etiquetas/*.csv
+!resultados/*.csv
 *.zip
 
 # Python y Jupyter

@@ -122,7 +122,7 @@ PCD/
 ├── README.md
 ├── CLAUDE.md
 ├── funciones.py                  # funciones reutilizables (datos, indicadores, señales, textos, evaluación)
-├── capas_keras.py                # capas de M2 y M3 copiadas del 07 (fija TensorFlow); solo la importa el 08
+├── capas_keras.py                # piezas de Keras de M2, M3 y M4 (fija TensorFlow); las importan el 07 y el 08
 ├── 01_universo_tickers.ipynb     # SEC: lista de empresas → NASDAQ + NYSE
 ├── 02_precios_y_recorte.ipynb    # yfinance: precios + recorte a 1.000 empresas + 10 años de histórico
 ├── 03_sec_datos_estructurados.ipynb  # SEC: submissions (informes + sector) + cifras financieras (frames)
@@ -133,6 +133,8 @@ PCD/
 ├── 08_noticias_y_bolsa.ipynb     # sentimiento de los titulares, ~200 titulares a mano, estudio de eventos
 ├── 09_senales_y_noticias.ipynb   # señales técnicas con y sin noticias
 ├── app.py                        # opcional, se decide al final
+├── etiquetas/                    # titulares etiquetados a mano y su regla (en git)
+├── resultados/                   # predicciones del primer M3, guardadas antes de su corrección (en git)
 ├── archivo/                      # versiones retiradas (no se sube a git; el historial está en git)
 └── data/
     ├── cache/                    # todo lo descargado o calculado, en parquet
@@ -234,13 +236,14 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 - Antes de descargar el diccionario Loughran-McDonald, mostrar su fuente, formato y licencia (regla 4).
 - Con el desequilibrio de clases, se valoran pesos de clase en M2 y M3 viendo la validación.
 - **M4, FinBERT preentrenado (17 nov, sugerencia del tutor):** lo habitual es partir de un BERT preentrenado a gran escala, porque preentrenar uno propio da peores resultados (M3: 0,586 en el test). Es **solo el modelo preentrenado** (FinVocab en minúsculas, 30.873 piezas) y **no ha visto PhraseBank**. Quedan **excluidos** ProsusAI/finbert (se ajustó con Financial PhraseBank y habría visto el test) y finbert-tone (ya es un clasificador de sentimiento ajustado por otros). **Plan B**, solo si FinBERT no se pudiera cargar (decidido antes de ver resultados): `nlpaueb/sec-bert-base`. **Transparencia:** M4 se añade **después de haber mirado el test de M1–M3**, por sugerencia del tutor y no por los resultados; consta en el notebook y en la bitácora, y todas sus decisiones (136 tokens, Adam(2e-5) fijo, una fase, cabeza `[CLS]`, GELU exacta) se fijan antes de entrenarlo. Detalles técnicos: KerasHub no lee el `config.json` de 2020 (sin `model_type`) ni `pytorch_model.bin`, así que el 07 descarga el commit `88ab954`, comprueba su SHA-256, añade `model_type` y convierte los pesos del encoder a `safetensors` (con caché); KerasHub usa la GELU aproximada y el 07 la cambia por la exacta del BERT original (salida idéntica a la de `transformers`, diferencia < 2e-5). Los pesos ajustados se guardan como `m4_finbert.weights.h5` (1,3 GB: Keras guarda también el estado de Adam). **Resultado (17 nov):** 4 épocas (23,7 min), la mejor la 1; test 0,813 (0,78–0,84); M4 − M2 = +0,140 (0,10–0,18); M4 − M3 = +0,226 (0,19–0,27); acierta 102 de 121 negativas. Mejor instrumento para el 08.
+- **Estructura del 07 (recorte del 17–18 nov, sin cambiar ningún resultado):** 1 PhraseBank · 2 partición, métricas y referencia · 3 M1 · 4 vocabulario · 5 M2 · 6 M3 preentrenamiento (ya con la permutación completa) · 7 M3 ajuste y, en 7.4, el fallo del primer preentrenamiento · 8 M4 · 9 examen final de los cuatro con el test (con la cronología: M1–M3 el 16 nov, después la corrección de M3 y M4) · 5 celdas de Comprobaciones. Las tablas usan `tabla_f1` y `tabla_diferencias` de `funciones.py`.
 
 **Aplicación (notebook 08)**
 
 - Los modelos puntúan todos los titulares de FNSPID que mencionan a su empresa (hecho con los cuatro: 192.069 titulares, `data/cache/sentimiento_titulares.parquet`, con caché por modelo; M4, por grupos de longitud de 32, 64 y 136 tokens, porque con la cabeza `[CLS]` el resultado no depende del relleno). Salida: una tabla (parquet) con una fila por titular y modelo: empresa, fecha, titular, sentimiento (−1/0/1) y confianza (probabilidad de la clase elegida; en M1, la proporción de palabras con tono).
 - **Validación fuera de dominio:** 300 titulares recientes de NewsAPI (como mucho 5 por empresa; 200 previstos, ampliados a 300 por el autor el 16 nov antes de etiquetar) etiquetados a mano por el autor en `etiquetas/titulares_a_mano.csv` (en git), con la regla de `etiquetas/regla_de_etiquetado.md` y una columna `trata_de_la_empresa` para los que el filtro dejó pasar por error. Se evalúan con la misma función y `comparar_f1` que PhraseBank, con los 300 y solo con los 271 que tratan de la empresa. **Resultado (17 nov):** F1 macro con los 300: M1 0,460, M2 0,376, M3 0,375, **M4 0,626** (0,56–0,69); M4 − M2 = +0,25 (0,18–0,32); M2 − M1 = −0,085 (−0,17 a 0,004), no concluyente. M2 y M3 se hunden fuera de dominio; M4 es el instrumento para el estudio de eventos.
-- **Excepción a la regla 5 (decisión del autor, 16 nov):** las capas (`TransformerEncoder`, `PositionalEmbedding`) y la estandarización del vocabulario se copian en **`capas_keras.py`**, que solo importa el 08; el 07 conserva las suyas para no perder sus salidas de entrenamiento. Van fuera de `funciones.py` porque necesitan Keras: `capas_keras.py` fija TensorFlow al importarse, y así los notebooks 01–07 no cargan Keras. El 08 comprueba que la copia es fiel repitiendo las predicciones de validación del 07 (100 %).
-- **M3 oficial: el corregido** (`m3_mezclado_descongelado.keras`, sección 10 del 07): el preentrenamiento original mezclaba el corpus con `shuffle(1000)` y dejaba titulares e informes en bloques. Test: 0,586 (0,54–0,62); M3 − M2 = −0,087 (−0,13 a −0,05).
+- **`capas_keras.py`, compartido por el 07 y el 08 (decisión del autor, 18 nov; sustituye a la excepción a la regla 5 del 16 nov):** `custom_standardization`, `MAX_LEN`, `VOCAB_SIZE`, las capas `TransformerEncoder` y `PositionalEmbedding` (código de los apuntes) y, para M4, `construir_m4` (sin compilar), `cargar_m4` y el tokenizador. Va fuera de `funciones.py` porque necesita Keras: fija TensorFlow al importarse, así los notebooks 01–06 no cargan Keras. El 08 comprueba que reproduce las predicciones de validación del 07 (100 %).
+- **M3 oficial: el corregido** (`m3_mezclado_descongelado.keras`; el 07 lo usa directamente en las secciones 6 y 7, y el fallo se cuenta en la 7.4 con las predicciones del primer M3 guardadas en `resultados/m3_original_predicciones.csv`): el preentrenamiento original mezclaba el corpus con `shuffle(1000)` y dejaba titulares e informes en bloques. Test: 0,586 (0,54–0,62); M3 − M2 = −0,087 (−0,13 a −0,05).
 
 ### 8.7 Ingesta desde SEC EDGAR (notebooks 01, 03 y 06) — hecho
 

@@ -4,7 +4,7 @@ Debe leerse íntegramente antes de generar o modificar código.
 
 > **Última revisión: 1 nov 2026.** Cambios del 1 nov (simplificación para dominar todo el código en la defensa): la **pregunta central** pasa a ser si hay relación entre las noticias y la bolsa; **híbrido**: se mantienen los indicadores y las señales técnicas (04 y 05), pero salen los stops, el Sharpe, la estacionalidad, el backtesting completo y el screener; **tres modelos de sentimiento** (diccionario, Transformer y BERT) con **código como el de los apuntes de clase**; los filings quedan solo como corpus de preentrenamiento. Antes: notebooks y alcance de Trade Recommender (11 oct), modelos propios y plan reducido (19 oct). El razonamiento de cada cambio está en la bitácora (sección 10).
 >
-> **17 nov 2026:** se añade **M4, FinBERT preentrenado** (sugerencia del tutor), sin quitar M1–M3; se añade después de haber mirado el test de M1–M3 (8.6).
+> **17 nov 2026:** entrega el **6 dic 2026** (memoria técnica, presentación de ~15 min y el proyecto sin este fichero). Recortes: sin `app.py`, sin desglose por sector y 09 simplificado. Se añade **M4, FinBERT preentrenado** (sugerencia del tutor), sin quitar M1–M3; se añade después de haber mirado el test de M1–M3 (8.6).
 
 ---
 
@@ -258,13 +258,13 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 - Si una empresa tiene varios titulares el mismo día, se agregan en un sentimiento diario (la regla se decide viendo los datos).
 - **Sin mirar al futuro:** FNSPID solo trae el día de publicación (el 96 % de los titulares tiene la hora `00:00:00`, comprobado el 16 nov). La rentabilidad "posterior" es **1 sesión**: del cierre del día de la noticia al cierre siguiente (decisión del autor, 16 nov; se descartó 5 sesiones). Las noticias de fin de semana, desde el último cierre anterior. Varios titulares de una empresa el mismo día: media de sus sentimientos (−1/0/1) y su signo. Intervalo de la diferencia: Welch, con su limitación anotada.
 - La rentabilidad **del mismo día** se muestra aparte y se explica como relación inflada: muchos titulares cuentan un movimiento que ya ha ocurrido ("X shares fall after earnings").
-- Resultado: rentabilidad media por grupo (positivo, neutral, negativo), diferencia entre positivo y negativo con intervalo de confianza del 95 %, **para cada uno de los tres modelos**. Desglose por sector Fama-French si da tiempo.
+- Resultado: rentabilidad media por grupo (positivo, neutral, negativo), diferencia entre positivo y negativo con intervalo de confianza del 95 %, **para cada uno de los cuatro modelos**. El desglose por sector queda fuera (recorte del 17 nov; se puede añadir si sobra tiempo).
 
 **Notebook 09 — ¿cambian las señales técnicas según las noticias?**
 
 - Señales de compra y de venta del 05, contando solo el **primer día de cada racha** (la ruptura de Donchian se repite varios días seguidos).
 - Rentabilidad a 5 y 10 sesiones menos SPY (en las ventas, con el signo cambiado: aciertan si la acción baja).
-- Tres grupos: con noticias positivas en los días previos, sin noticias y con noticias negativas. El número de días previos y cualquier otro umbral se eligen con 2016–2018 y se comprueban con 2019–2020.
+- Tres grupos: con noticias positivas en los días previos, sin noticias y con noticias negativas. **Diseño simplificado (17 nov), fijado antes de ver los datos:** una sola ventana de noticias previas y un solo modelo de sentimiento, M4 (el mejor en PhraseBank y en los titulares a mano), sin elegir umbrales en 2016–2018. Se puede ampliar si sobra tiempo.
 - Solo empresas y fechas con cobertura de noticias (633 empresas, oct 2016 – jun 2020). Se decide aquí si se excluyen las 7 empresas con el precio casi congelado.
 
 **Limitaciones que deben documentarse junto a los resultados:**
@@ -280,9 +280,9 @@ Es la parte que más valora el profesor. Dos comparaciones, diseñadas **antes**
 1. **Cuatro formas de conseguir un modelo de sentimiento (07 y 08).** Tabla de M1, M2, M3 y M4 sobre el test de PhraseBank y sobre los 300 titulares a mano. Preguntas: ¿aprender de ejemplos supera a una lista de palabras hecha por expertos (M2 − M1)? ¿Aporta preentrenar (M3 − M2)? Esta es **la única comparación limpia del preentrenamiento**: M2 y M3 comparten vocabulario, arquitectura, tamaño y datos de ajuste. **M4 − M2 y M4 − M3 comparan recetas completas** (partir de un BERT preentrenado por otros frente a entrenar desde cero o preentrenar uno propio), **no el tamaño del preentrenamiento**: entre M3 y M4 cambian a la vez el tamaño de la red, el corpus, el tokenizador, la cabeza y el procedimiento de ajuste. Una diferencia dentro del intervalo de confianza no se presenta como mejora.
 2. **Noticias y bolsa (08 y 09).** ¿Hay relación entre el sentimiento y la rentabilidad posterior? ¿El modelo que mejor clasifica encuentra más relación que el diccionario? ¿Cambia el resultado de las señales técnicas con noticias positivas o negativas?
 
-### 8.10 Interfaz (`app.py`) — opcional
+### 8.10 Interfaz (`app.py`) — fuera (recorte del 17 nov)
 
-Se decide al final, solo si sobra tiempo. Idea mínima: elegir una empresa y ver su gráfico de precios con las señales técnicas y sus titulares coloreados por sentimiento. Lee de `data/` y usa `funciones.py`; no recalcula nada. Disclaimer visible.
+No se hace, salvo que sobre tiempo al final. Idea mínima: elegir una empresa y ver su gráfico de precios con las señales técnicas y sus titulares coloreados por sentimiento. Lee de `data/` y usa `funciones.py`; no recalcula nada. Disclaimer visible.
 
 ### 8.11 Fuera de alcance — trabajo futuro
 

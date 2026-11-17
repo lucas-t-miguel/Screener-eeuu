@@ -1,8 +1,8 @@
-"""Capas y vocabulario de los modelos M2 y M3, para cargarlos fuera del notebook 07.
+"""Capas y vocabulario de los modelos M2 y M3, y la construcción de M4, para cargarlos fuera del notebook 07.
 
-Es una copia del código del notebook 07 (secciones 5 y 6), que a su vez sigue los apuntes de clase
-(`Transformers.ipynb` y `bert_simplificado.ipynb`). El 07 conserva sus propias definiciones para no
-tener que volver a entrenar; este archivo solo lo importa el notebook 08.
+Es una copia del código del notebook 07: secciones 5 y 6 (M2 y M3, que siguen los apuntes de clase,
+`Transformers.ipynb` y `bert_simplificado.ipynb`) y sección 11 (M4, FinBERT). El 07 conserva sus propias
+definiciones para no tener que volver a entrenar; este archivo solo lo importa el notebook 08.
 
 Va aparte de `funciones.py` porque necesita Keras: importarlo fija el motor de Keras en TensorFlow,
 el del proyecto, y por eso tiene que importarse antes que cualquier `import keras`.
@@ -15,6 +15,7 @@ from pathlib import Path
 os.environ["KERAS_BACKEND"] = "tensorflow"   # el motor de Keras del proyecto; se fija antes de importar keras
 
 import keras
+import keras_hub
 import tensorflow as tf
 from keras import layers
 from keras.layers import TextVectorization
@@ -116,3 +117,32 @@ class PositionalEmbedding(layers.Layer):
 
 
 CAPAS_PROPIAS = {"TransformerEncoder": TransformerEncoder, "PositionalEmbedding": PositionalEmbedding}   # para cargar los .keras
+
+
+# --- M4: FinBERT (sección 11 del notebook 07) ---
+SECUENCIA_FINBERT = 136   # tokens por frase con los que se ajustó M4, con [CLS] y [SEP]
+
+
+def cargar_tokenizador_finbert(carpeta_finbert: Path) -> keras_hub.tokenizers.BertTokenizer:
+    """El tokenizador de FinBERT (FinVocab, en minúsculas), con el vocabulario de `carpeta_finbert`."""
+    ruta_vocabulario = carpeta_finbert / "vocab.txt"
+    if not ruta_vocabulario.exists():
+        raise FileNotFoundError(f"No existe {ruta_vocabulario}: ejecuta antes el notebook 07")
+    return keras_hub.tokenizers.BertTokenizer(vocabulary=str(ruta_vocabulario), lowercase=True)
+
+
+def cargar_m4(carpeta_finbert: Path, ruta_pesos: Path) -> keras.Model:
+    """M4 como en el notebook 07 (FinBERT con la GELU exacta y la cabeza [CLS]), con los pesos ajustados allí.
+
+    Lanza FileNotFoundError si falta FinBERT convertido o los pesos ajustados (se crean en el notebook 07).
+    """
+    for ruta in [carpeta_finbert / "model.safetensors", ruta_pesos]:
+        if not ruta.exists():
+            raise FileNotFoundError(f"No existe {ruta}: ejecuta antes el notebook 07")
+    backbone = keras_hub.models.BertBackbone.from_preset(str(carpeta_finbert))
+    # GELU exacta, la del BERT original con la que se preentrenó FinBERT (KerasHub usa una aproximación)
+    for capa in backbone.transformer_layers:
+        capa._feedforward_intermediate_dense.activation = keras.activations.gelu
+    model = keras_hub.models.BertTextClassifier(backbone, num_classes=3, activation="softmax", dropout=0.1)
+    model.load_weights(ruta_pesos)   # el fichero trae también el estado del optimizador del 07, que aquí no se usa
+    return model

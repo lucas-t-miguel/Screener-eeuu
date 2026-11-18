@@ -19,5 +19,8 @@ redColor = "#c1362d"
 grayColor = "#8e8e93"
 blueColor = "#0066cc"
 
+[client]
+toolbarMode = "minimal"   # sin el botón Deploy
+
 [browser]
 gatherUsageStats = false

@@ -27,6 +27,11 @@ def numero(valor: float, decimales: int = 3) -> str:
     return f"{valor:.{decimales}f}".replace(".", ",")
 
 
+def entero(valor: int) -> str:
+    """Un entero con punto de miles: '1.228'."""
+    return f"{valor:,}".replace(",", ".")
+
+
 def con_intervalo(valor: float, inferior: float, superior: float, decimales: int = 3) -> str:
     """'0,813 (0,782 – 0,841)'."""
     return f"{numero(valor, decimales)} ({numero(inferior, decimales)} – {numero(superior, decimales)})"

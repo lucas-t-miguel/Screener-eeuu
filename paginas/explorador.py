@@ -12,11 +12,17 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from funciones import CARPETA_CACHE
-from paginas.estilo import ACENTO, NEGATIVO, NEUTRAL, POSITIVO, SECUNDARIO, nota_aviso
+from paginas.estilo import ACENTO, NEGATIVO, NEUTRAL, POSITIVO, SECUNDARIO, entero, nota_aviso, numero
 
 INICIO, FIN = pd.Timestamp("2016-10-10"), pd.Timestamp("2020-06-11")   # el periodo con precios y noticias de FNSPID
 MODELO = "M4 FinBERT"                                                    # el mejor modelo de sentimiento
-SENTIMIENTO = {1: ("positivo", POSITIVO), 0: ("neutral", NEUTRAL), -1: ("negativo", NEGATIVO)}
+# Para cada sentimiento: cómo se llama un titular, cómo se llaman las noticias de un día, y su color
+SENTIMIENTO = {1: ("positivo", "noticias positivas", POSITIVO), 0: ("neutral", "noticias neutrales", NEUTRAL),
+               -1: ("negativo", "noticias negativas", NEGATIVO)}
+# Los 12 sectores de Fama-French, con un nombre corto en español
+SECTOR = {"NoDur": "Consumo no duradero", "Durbl": "Consumo duradero", "Manuf": "Industria", "Enrgy": "Energía",
+          "Chems": "Química", "BusEq": "Tecnología", "Telcm": "Telecomunicaciones", "Utils": "Suministros",
+          "Shops": "Comercio", "Hlth": "Salud", "Money": "Finanzas", "Other": "Otros"}
 TITULARES_EN_LA_ETIQUETA = 5
 
 
@@ -36,7 +42,7 @@ def cargar_datos() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     diario["primera_senal"] = diario["senal"].where(diario["senal"] != diario.groupby("ticker")["senal"].shift())
     titulares = pd.read_parquet(CARPETA_CACHE / "sentimiento_titulares.parquet", filters=[("modelo", "==", MODELO)],
                                 columns=["ticker", "fecha", "titular", "sentimiento", "confianza"])
-    empresas = pd.read_parquet(CARPETA_CACHE / "empresas_sec.parquet", columns=["ticker", "name", "sector_descripcion"])
+    empresas = pd.read_parquet(CARPETA_CACHE / "empresas_sec.parquet", columns=["ticker", "name", "sector"])
     return diario, titulares, empresas.set_index("ticker")
 
 
@@ -71,15 +77,15 @@ por_dia = (noticias.groupby("sesion")
 por_dia["signo"] = np.sign(por_dia["media"]).astype(int)
 
 st.subheader(f"{ticker} · {empresas.loc[ticker, 'name']}")
-st.caption(f"Sector (Fama-French): {empresas.loc[ticker, 'sector_descripcion']} · del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}")
+st.caption(f"Sector (Fama-French): {SECTOR.get(empresas.loc[ticker, 'sector'], 'sin sector')} · del {desde:%d/%m/%Y} al {hasta:%d/%m/%Y}")
 ultimo = dias.iloc[-1]
 tarjetas = st.columns(5)
-tarjetas[0].metric("Último cierre (ajustado)", f"{ultimo['close']:,.2f} USD", border=True)
+tarjetas[0].metric("Último cierre ajustado (USD)", numero(ultimo["close"], 2), border=True)
 tarjetas[1].metric("Régimen el último día", ultimo["regimen"] or "—", border=True)
 tarjetas[2].metric("Señales de compra", int((dias["primera_senal"] == "compra").sum()), border=True)
 tarjetas[3].metric("Señales de venta", int((dias["primera_senal"] == "venta").sum()), border=True)
-tarjetas[4].metric("Titulares", len(noticias), border=True,
-                   help=" · ".join(f"{(noticias['sentimiento'] == s).sum()} {nombre}s" for s, (nombre, _) in SENTIMIENTO.items()))
+tarjetas[4].metric("Titulares", entero(len(noticias)), border=True,
+                   help=" · ".join(f"{entero((noticias['sentimiento'] == s).sum())} {plural}" for s, (_, plural, _) in SENTIMIENTO.items()))
 
 # --- Cuatro paneles con el mismo eje de fechas: velas, franja de noticias, RSI y ADX
 grafico = make_subplots(rows=4, cols=1, shared_xaxes=True, row_heights=[0.55, 0.05, 0.2, 0.2], vertical_spacing=0.025)
@@ -98,10 +104,10 @@ for senal, simbolo, color, altura in [("compra", "triangle-up", POSITIVO, dias["
     grafico.add_trace(go.Scatter(x=dias.loc[es_senal, "fecha"], y=altura[es_senal], mode="markers", name=senal,
                                  marker={"symbol": simbolo, "size": 10, "color": color}), row=1, col=1)
 
-for signo, (nombre, color) in SENTIMIENTO.items():
+for signo, (_, plural, color) in SENTIMIENTO.items():
     del_signo = por_dia[por_dia["signo"] == signo]
     grafico.add_trace(go.Scatter(
-        x=del_signo["sesion"], y=[0] * len(del_signo), mode="markers", name=f"noticias {nombre}s",
+        x=del_signo["sesion"], y=[0] * len(del_signo), mode="markers", name=plural,
         marker={"size": 7, "color": color, "symbol": "square"}, customdata=del_signo[["cuantos", "texto"]],
         hovertemplate="%{x|%d/%m/%Y} · %{customdata[0]} titular(es)<br>%{customdata[1]}<extra></extra>"), row=2, col=1)
 
@@ -111,20 +117,24 @@ for nivel in [30, 70]:
 grafico.add_trace(go.Scatter(x=dias["fecha"], y=dias["adx"], name="ADX", line={"color": SECUNDARIO, "width": 1.3}, showlegend=False), row=4, col=1)
 grafico.add_hline(y=25, line_dash="dot", line_color=NEUTRAL, row=4, col=1)
 
-grafico.update_layout(height=760, xaxis_rangeslider_visible=False)
+grafico.update_layout(height=760, xaxis_rangeslider_visible=False, legend={"traceorder": "normal"})
+# La leyenda, en orden: EMA(4), EMA(8), Donchian, compra, venta y las noticias positivas, neutrales y negativas
+for posicion, nombre in enumerate(["EMA(4)", "EMA(8)", "Donchian", "compra", "venta"] + [p for _, p, _ in SENTIMIENTO.values()]):
+    grafico.update_traces(legendrank=posicion, selector={"name": nombre})
 grafico.update_xaxes(rangebreaks=[{"bounds": ["sat", "mon"]}])   # sin los fines de semana
 grafico.update_yaxes(title_text="precio (USD)", row=1, col=1)
-grafico.update_yaxes(showticklabels=False, showgrid=False, range=[-1, 1], title_text="noticias", row=2, col=1)
+grafico.update_yaxes(showticklabels=False, showgrid=False, range=[-1, 1], row=2, col=1)   # la franja de noticias, sin título
 grafico.update_yaxes(range=[0, 100], title_text="RSI (14)", row=3, col=1)
 grafico.update_yaxes(title_text="ADX (14)", row=4, col=1)
 st.plotly_chart(grafico, width="stretch", theme=None)
 
-st.subheader(f"Titulares del periodo, según M4 ({len(noticias)})")
+st.subheader(f"Titulares del periodo, según M4 ({entero(len(noticias))})")
 tabla = (noticias.sort_values("fecha", ascending=False)
-         .assign(sentimiento=lambda t: t["sentimiento"].map(lambda s: SENTIMIENTO[s][0]))[["fecha", "titular", "sentimiento", "confianza"]])
+         .assign(sentimiento=lambda t: t["sentimiento"].map(lambda s: SENTIMIENTO[s][0]),
+                 confianza=lambda t: t["confianza"].map(lambda c: numero(c, 2)))[["fecha", "titular", "sentimiento", "confianza"]])
 st.dataframe(tabla, hide_index=True, width="stretch",
              column_config={"fecha": st.column_config.DateColumn(format="DD/MM/YYYY"),
-                            "confianza": st.column_config.NumberColumn(format="%.2f", help="probabilidad de la clase elegida")})
+                            "confianza": st.column_config.TextColumn(help="probabilidad de la clase elegida")})
 st.caption("Señales: primer día de cada racha (notebook 05). Noticias: titulares de FNSPID con el sentimiento de M4 "
            "(FinBERT ajustado en el notebook 07); los de fin de semana van al viernes.")
 nota_aviso()

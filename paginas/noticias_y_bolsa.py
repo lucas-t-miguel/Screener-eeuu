@@ -3,7 +3,7 @@
 import plotly.graph_objects as go
 import streamlit as st
 
-from paginas.estilo import MODELOS, NEGATIVO, NEUTRAL, POSITIVO, con_intervalo, leer_resultados, numero, nota_aviso
+from paginas.estilo import MODELOS, NEGATIVO, NEUTRAL, POSITIVO, con_intervalo, entero, leer_resultados, numero, nota_aviso
 
 st.title("¿Se mueve la acción después de una noticia?")
 st.markdown(":gray[Rentabilidad de la acción menos la del mercado (SPY), después de los días con noticias positivas "
@@ -51,9 +51,9 @@ for comparacion, filas in principal.groupby("comparacion", sort=False):
     tabla.loc[comparacion] = [con_intervalo(f["diferencia (%)"], f["IC 95 % inferior"], f["IC 95 % superior"], 2)
                               + ("" if f["¿concluyente?"] == "sí" else "  ·  no concluyente")
                               for _, f in filas.set_index("horizonte").loc[tabla.columns].iterrows()]
-st.dataframe(tabla.rename_axis("compras").rename(columns=lambda h: f"a {h} (%, IC 95 %)"), width="stretch")
+st.table(tabla.rename_axis("compras").rename(columns=lambda h: f"a {h} (%, IC 95 %)"))
 senales_por_grupo = compras[compras["horizonte"] == "5 sesiones"].set_index("grupo")["señales"]
-st.caption(f"Señales: {', '.join(f'{grupo} {n:,}'.replace(',', '.') for grupo, n in senales_por_grupo.items())}.")
+st.caption(f"Señales: {', '.join(f'{grupo} {entero(n)}' for grupo, n in senales_por_grupo.items())}.")
 
 st.markdown("""**Lectura**
 - **Hay relación, pero es pequeña, y solo la encuentran los modelos que leen bien los titulares** (M4 y el diccionario); con M2 y M3 no hay diferencia.

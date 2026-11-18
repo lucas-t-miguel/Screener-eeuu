@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from paginas.estilo import ACENTO, MODELOS, TEXTO, con_intervalo, leer_resultados, nota_aviso
+from paginas.estilo import ACENTO, MODELOS, NEUTRAL, con_intervalo, leer_resultados, nota_aviso, numero
 
 st.title("¿Qué modelo mide mejor el sentimiento?")
 st.markdown(":gray[Cuatro formas de conseguir un modelo de sentimiento, medidas igual: F1 macro (la media del F1 "
@@ -15,7 +15,7 @@ st.markdown(":gray[Cuatro formas de conseguir un modelo de sentimiento, medidas 
 modelos = leer_resultados("07_modelos")
 a_mano = leer_resultados("08_titulares_a_mano")
 conjuntos = {"Test de PhraseBank (968 frases)": (modelos[modelos["conjunto"] == "test"], ACENTO),
-             "300 titulares etiquetados a mano": (a_mano[a_mano["conjunto"] == "los 300"], TEXTO)}
+             "300 titulares etiquetados a mano": (a_mano[a_mano["conjunto"] == "los 300"], NEUTRAL)}
 
 grafico = go.Figure()
 for nombre, (tabla, color) in conjuntos.items():
@@ -37,10 +37,10 @@ for modelo in MODELOS:
     m271 = a_mano[(a_mano["conjunto"] != "los 300") & (a_mano["modelo"] == modelo)].iloc[0]
     filas.append({"modelo": modelo,
                   "test de PhraseBank: F1 (IC 95 %)": con_intervalo(t["f1_macro"], t["ic_inferior"], t["ic_superior"]),
-                  "exactitud": f"{t['exactitud']:.3f}".replace(".", ","),
+                  "exactitud": numero(t["exactitud"]),
                   "300 titulares: F1 (IC 95 %)": con_intervalo(m300["f1_macro"], m300["ic_inferior"], m300["ic_superior"]),
-                  "los 271 que tratan de su empresa: F1": f"{m271['f1_macro']:.3f}".replace(".", ",")})
-st.dataframe(pd.DataFrame(filas), hide_index=True, width="stretch")
+                  "los 271 que tratan de su empresa: F1": numero(m271["f1_macro"])})
+st.table(pd.DataFrame(filas).set_index("modelo"))
 
 def por_comparacion(tabla: pd.DataFrame, conjunto: str) -> pd.Series:
     """Cada diferencia de un conjunto, con su intervalo y si es concluyente, indexada por su código ('M2 − M1'…)."""
@@ -51,9 +51,8 @@ def por_comparacion(tabla: pd.DataFrame, conjunto: str) -> pd.Series:
 
 
 with st.expander("Diferencias entre modelos, con su intervalo (bootstrap emparejado)"):
-    st.dataframe(pd.DataFrame({"test de PhraseBank": por_comparacion(leer_resultados("07_diferencias"), "test"),
-                               "300 titulares a mano": por_comparacion(leer_resultados("08_diferencias_a_mano"), "los 300")}),
-                 width="stretch")
+    st.table(pd.DataFrame({"test de PhraseBank": por_comparacion(leer_resultados("07_diferencias"), "test"),
+                           "300 titulares a mano": por_comparacion(leer_resultados("08_diferencias_a_mano"), "los 300")}))
     st.caption("M3 − M2 es la única comparación limpia del preentrenamiento. M4 − M2 y M4 − M3 comparan recetas "
                "completas: entre M3 y M4 cambian a la vez la red, el corpus, el tokenizador, la cabeza y el ajuste.")
 

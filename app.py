@@ -26,6 +26,7 @@ pio.templates["proyecto"] = go.layout.Template(layout={
     "xaxis": eje, "yaxis": eje, "hoverlabel": {"font": {"family": FUENTE}},
     "legend": {"orientation": "h", "x": 0, "y": 1.02, "yanchor": "bottom", "title": None, "font": {"size": 12}},
     "margin": {"t": 30, "l": 10, "r": 10, "b": 10},
+    "separators": ",.",   # coma decimal y punto de miles, en los ejes y al pasar el ratón
 })
 pio.templates.default = "plotly_white+proyecto"
 

@@ -269,7 +269,7 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 - Señales de compra y de venta del 05, contando solo el **primer día de cada racha** (la ruptura de Donchian se repite varios días seguidos).
 - Rentabilidad a 5 y 10 sesiones menos SPY (en las ventas, con el signo cambiado: aciertan si la acción baja).
 - Tres grupos: con noticias positivas en los días previos, sin noticias y con noticias negativas. **Diseño simplificado (17 nov), fijado antes de ver los datos:** una sola ventana de noticias previas y un solo modelo de sentimiento, M4 (el mejor en PhraseBank y en los titulares a mano), sin elegir umbrales en 2016–2018. Se puede ampliar si sobra tiempo.
-- Solo empresas y fechas con cobertura de noticias (633 empresas, oct 2016 – jun 2020). Se decide aquí si se excluyen las 7 empresas con el precio casi congelado.
+- Solo empresas y fechas con cobertura de noticias (633 empresas, oct 2016 – jun 2020). **Ventana (decisión del autor, 18 nov): 5 sesiones previas a la señal, sin la de la señal; 3 como sensibilidad.** Los eventos de noticias los guarda el 08 en `data/cache/eventos_noticias.parquet`. **Paso 1 hecho (18 nov):** 54.001 señales (primer día de racha) en 621 empresas; no se excluye ninguna empresa: las 7 del precio congelado eran normales en 2016–2020 (lo estaban en 2025–2026) y las 9 que casi no se movían entonces no tienen noticias.
 
 **Limitaciones que deben documentarse junto a los resultados:**
 

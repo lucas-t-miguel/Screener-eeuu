@@ -132,7 +132,7 @@ PCD/
 ├── 07_modelos_sentimiento.ipynb  # PhraseBank; M1 diccionario, M2 Transformer, M3 BERT, M4 FinBERT; comparación
 ├── 08_noticias_y_bolsa.ipynb     # sentimiento de los titulares, ~200 titulares a mano, estudio de eventos
 ├── 09_senales_y_noticias.ipynb   # señales técnicas con y sin noticias
-├── app.py                        # opcional, se decide al final
+├── app.py                        # explorador mínimo con Streamlit (8.10), para la presentación
 ├── etiquetas/                    # titulares etiquetados a mano y su regla (en git)
 ├── resultados/                   # predicciones del primer M3, guardadas antes de su corrección (en git)
 ├── archivo/                      # versiones retiradas (no se sube a git; el historial está en git)
@@ -284,9 +284,9 @@ Es la parte que más valora el profesor. Dos comparaciones, diseñadas **antes**
 1. **Cuatro formas de conseguir un modelo de sentimiento (07 y 08).** Tabla de M1, M2, M3 y M4 sobre el test de PhraseBank y sobre los 300 titulares a mano. Preguntas: ¿aprender de ejemplos supera a una lista de palabras hecha por expertos (M2 − M1)? ¿Aporta preentrenar (M3 − M2)? Esta es **la única comparación limpia del preentrenamiento**: M2 y M3 comparten vocabulario, arquitectura, tamaño y datos de ajuste. **M4 − M2 y M4 − M3 comparan recetas completas** (partir de un BERT preentrenado por otros frente a entrenar desde cero o preentrenar uno propio), **no el tamaño del preentrenamiento**: entre M3 y M4 cambian a la vez el tamaño de la red, el corpus, el tokenizador, la cabeza y el procedimiento de ajuste. Una diferencia dentro del intervalo de confianza no se presenta como mejora.
 2. **Noticias y bolsa (08 y 09).** ¿Hay relación entre el sentimiento y la rentabilidad posterior? ¿El modelo que mejor clasifica encuentra más relación que el diccionario? ¿Cambia el resultado de las señales técnicas con noticias positivas o negativas?
 
-### 8.10 Interfaz (`app.py`) — fuera (recorte del 17 nov)
+### 8.10 Interfaz (`app.py`) — explorador mínimo para la presentación (decisión del autor, 18 nov)
 
-No se hace, salvo que sobre tiempo al final. Idea mínima: elegir una empresa y ver su gráfico de precios con las señales técnicas y sus titulares coloreados por sentimiento. Lee de `data/` y usa `funciones.py`; no recalcula nada. Disclaimer visible.
+Se recupera una `app.py` mínima, con un límite de **un día de trabajo**: un explorador para enseñar los datos en la presentación, sin añadir ningún indicador nuevo al análisis. Un solo fichero con Streamlit, legible y de 200–250 líneas como mucho. No importa Keras ni TensorFlow: solo lee parquet de `data/cache/` (precios, indicadores del 04, señales del 05 y el sentimiento de M4 de los titulares) y usa `funciones.py` si hace falta. Barra lateral: empresa (ticker y nombre) y rango de fechas dentro de oct 2016 – jun 2020. Un gráfico plotly con tres paneles sobre el mismo eje de fechas: (1) velas, EMA(4) y EMA(8), canal de Donchian, señales de compra y venta y días con noticias coloreados según M4 (titular al pasar el ratón); (2) RSI con 30 y 70; (3) ADX con 25. Debajo, la tabla de titulares del periodo con su sentimiento de M4, y el disclaimer visible. Inspiración de diseño (sin copiar código): la vista de detalle de Trade Recommender; no se usa nada de lo retirado (MACD, Bollinger, Fibonacci, amplitud, estacionalidad) ni FastAPI, JavaScript o CSS propio.
 
 ### 8.11 Fuera de alcance — trabajo futuro
 

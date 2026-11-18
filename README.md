@@ -27,8 +27,22 @@ Proyecto de la asignatura **Proyecto de Ciencia de Datos**. Se mide el sentimien
 
 Cada notebook se lee de arriba abajo: empieza con su objetivo, sus entradas y sus salidas, cada sección termina con una conclusión, y la última sección, **Comprobaciones**, verifica los resultados con `assert`.
 
+## Explorador (`app.py`)
+
+Una app de Streamlit para ver los datos de una empresa: se abre con `streamlit run app.py`, una vez ejecutados los notebooks.
+
+- **Barra lateral:** la empresa (una de las 633 con noticias) y el rango de fechas, de octubre de 2016 a junio de 2020.
+- **Gráfico de tres paneles** con el mismo eje de fechas:
+  - las velas con EMA(4) y EMA(8), el canal de Donchian, las señales de compra y venta (primer día de cada racha) y los días con noticias, coloreados según el sentimiento de M4, con sus titulares al pasar el ratón;
+  - el RSI, con las líneas de 30 y 70;
+  - el ADX, con la línea de 25.
+- **Debajo,** los titulares del periodo con su sentimiento según M4.
+
+Solo lee lo que los notebooks guardaron en `data/cache/`: no descarga nada, no calcula indicadores nuevos ni carga ningún modelo.
+
 ## Código compartido y carpetas
 
+- **`app.py`:** el explorador de la sección anterior.
 - **`funciones.py`:** las funciones que usan varios notebooks: descargas de la SEC, indicadores, señales, el filtro de titulares de cada empresa, la evaluación de los modelos (F1 macro con intervalo por *bootstrap*) y las comparaciones estadísticas.
 - **`capas_keras.py`:** las piezas de Keras de los modelos M2, M3 y M4, compartidas por el 07 y el 08. Fija TensorFlow como motor de Keras al importarse.
 - **`etiquetas/`:** los 300 titulares etiquetados a mano y la regla con la que se etiquetaron.

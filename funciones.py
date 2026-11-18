@@ -526,6 +526,19 @@ def diferencia_medias_welch(grupo_a, grupo_b, confianza: float = 0.95) -> dict:
     return {"diferencia": float(grupo_a.mean() - grupo_b.mean()), "ic_inferior": float(intervalo.low),
             "ic_superior": float(intervalo.high), "p_valor": float(prueba.pvalue), "n_a": len(grupo_a), "n_b": len(grupo_b)}
 
+
+def media_con_intervalo(valores, confianza: float = 0.95) -> dict:
+    """Media de unos valores con su intervalo de confianza (t de Student) y cuántos son.
+
+    Lanza ValueError si hay menos de 2 valores.
+    """
+    valores = np.asarray(valores, dtype=float)
+    if len(valores) < 2:
+        raise ValueError(f"Hacen falta al menos 2 valores (hay {len(valores)})")
+    media = valores.mean()
+    mitad = stats.t.ppf((1 + confianza) / 2, len(valores) - 1) * valores.std(ddof=1) / np.sqrt(len(valores))
+    return {"media": float(media), "ic_inferior": float(media - mitad), "ic_superior": float(media + mitad), "n": len(valores)}
+
 # --- M1: diccionario Loughran-McDonald (notebooks 07 y 08) ---
 
 

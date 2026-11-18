@@ -1,0 +1,23 @@
+# Tema de la app: solo modo claro, con la paleta del proyecto
+
+[theme]
+base = "light"
+primaryColor = "#0066cc"
+backgroundColor = "#f7f7f5"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#1c1c1e"
+linkColor = "#0066cc"
+font = "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+baseRadius = "10px"
+borderColor = "rgba(0, 0, 0, 0.08)"
+showWidgetBorder = true
+showSidebarBorder = true
+headingFontWeights = 650
+metricValueFontWeight = 600
+greenColor = "#1c8a4b"
+redColor = "#c1362d"
+grayColor = "#8e8e93"
+blueColor = "#0066cc"
+
+[browser]
+gatherUsageStats = false

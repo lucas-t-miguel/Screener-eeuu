@@ -132,7 +132,9 @@ PCD/
 ├── 07_modelos_sentimiento.ipynb  # PhraseBank; M1 diccionario, M2 Transformer, M3 BERT, M4 FinBERT; comparación
 ├── 08_noticias_y_bolsa.ipynb     # sentimiento de los titulares, ~200 titulares a mano, estudio de eventos
 ├── 09_senales_y_noticias.ipynb   # señales técnicas con y sin noticias
-├── app.py                        # explorador mínimo con Streamlit (8.10), para la presentación
+├── app.py                        # app de Streamlit (8.10): navegación, CSS mínimo y plantilla de Plotly
+├── paginas/                      # una página por fichero (proyecto, modelos, noticias_y_bolsa, explorador) y estilo.py
+├── .streamlit/config.toml        # tema de la app (solo modo claro)
 ├── etiquetas/                    # titulares etiquetados a mano y su regla (en git)
 ├── resultados/                   # predicciones del primer M3, guardadas antes de su corrección (en git)
 ├── archivo/                      # versiones retiradas (no se sube a git; el historial está en git)

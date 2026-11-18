@@ -27,22 +27,20 @@ Proyecto de la asignatura **Proyecto de Ciencia de Datos**. Se mide el sentimien
 
 Cada notebook se lee de arriba abajo: empieza con su objetivo, sus entradas y sus salidas, cada sección termina con una conclusión, y la última sección, **Comprobaciones**, verifica los resultados con `assert`.
 
-## Explorador (`app.py`)
+## La app (`app.py`)
 
-Una app de Streamlit para ver los datos de una empresa: se abre con `streamlit run app.py`, una vez ejecutados los notebooks.
+Una app de Streamlit para enseñar el proyecto: se abre con `streamlit run app.py`, una vez ejecutados los notebooks. Tiene un menú lateral con cuatro páginas:
 
-- **Barra lateral:** la empresa (una de las 633 con noticias) y el rango de fechas, de octubre de 2016 a junio de 2020.
-- **Gráfico de tres paneles** con el mismo eje de fechas:
-  - las velas con EMA(4) y EMA(8), el canal de Donchian, las señales de compra y venta (primer día de cada racha) y los días con noticias, coloreados según el sentimiento de M4, con sus titulares al pasar el ratón;
-  - el RSI, con las líneas de 30 y 70;
-  - el ADX, con la línea de 25.
-- **Debajo,** los titulares del periodo con su sentimiento según M4.
+- **Proyecto:** la pregunta, los datos y el método en 4 pasos.
+- **Modelos de sentimiento:** el F1 macro con su intervalo de los cuatro modelos en el test de PhraseBank y con los 300 titulares a mano, y las diferencias entre modelos.
+- **Noticias y bolsa:** la diferencia entre noticias positivas y negativas en la sesión siguiente, por modelo; el mismo día, aparte; y las compras técnicas según las noticias previas.
+- **Explorador:** para una empresa y unas fechas (de octubre de 2016 a junio de 2020), las velas con EMA(4) y EMA(8), el canal de Donchian, las señales de compra y venta y, en una franja propia, los días con noticias coloreados según M4 (con los titulares al pasar el ratón); debajo, el RSI y el ADX, y la tabla de titulares.
 
-Solo lee lo que los notebooks guardaron en `data/cache/`: no descarga nada, no calcula indicadores nuevos ni carga ningún modelo.
+**La app no recalcula ningún resultado:** los notebooks 07, 08 y 09 guardan sus tablas finales en `data/cache/resultados_*.parquet`, y el Explorador lee los datos diarios que guardaron los notebooks 02, 04, 05 y 08. No carga Keras ni TensorFlow. El tema está en `.streamlit/config.toml`.
 
 ## Código compartido y carpetas
 
-- **`app.py`:** el explorador de la sección anterior.
+- **`app.py`, `paginas/` y `.streamlit/config.toml`:** la app de la sección anterior: la navegación y la plantilla de los gráficos, una página por fichero (con `paginas/estilo.py`, la paleta compartida) y el tema.
 - **`funciones.py`:** las funciones que usan varios notebooks: descargas de la SEC, indicadores, señales, el filtro de titulares de cada empresa, la evaluación de los modelos (F1 macro con intervalo por *bootstrap*) y las comparaciones estadísticas.
 - **`capas_keras.py`:** las piezas de Keras de los modelos M2, M3 y M4, compartidas por el 07 y el 08. Fija TensorFlow como motor de Keras al importarse.
 - **`etiquetas/`:** los 300 titulares etiquetados a mano y la regla con la que se etiquetaron.

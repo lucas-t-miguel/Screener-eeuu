@@ -10,7 +10,7 @@ Proyecto de la asignatura **Proyecto de Ciencia de Datos**. Filtra acciones de N
 |---|---|
 | `01_universo_tickers.ipynb` | Lista de empresas de la SEC, filtrada a NASDAQ y NYSE |
 | `02_precios_y_recorte.ipynb` | Precios de yfinance y recorte a las 1.000 empresas más líquidas |
-| `03_sec_datos_estructurados.ipynb` | Filings, sector Fama-French y cifras financieras de la SEC |
+| `03_sec_datos_estructurados.ipynb` | Filings y sector Fama-French de cada empresa, desde la SEC |
 | `04_indicadores_tecnicos.ipynb` | RSI, CMF, ADX, EMA y Donchian (los que usan las señales) |
 | `05_senales_y_riesgo.ipynb` | Régimen de mercado y señales de compra y venta |
 | `06_textos.ipynb` | Noticias (FNSPID y NewsAPI) y texto de los filings |

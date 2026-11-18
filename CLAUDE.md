@@ -70,7 +70,7 @@ Se responde en tres partes:
 | Datos de mercado | `yfinance` |
 | Análisis técnico | `pandas`, `pandas-ta` |
 | Visualización | `plotly` |
-| Datos SEC | APIs oficiales EDGAR (`data.sec.gov/submissions`, `data.sec.gov/api/xbrl/frames`) + `requests` y `BeautifulSoup` para el texto de los informes |
+| Datos SEC | API oficial EDGAR (`data.sec.gov/submissions`) + `requests` y `BeautifulSoup` para el texto de los informes |
 | Noticias | FNSPID (titulares 2016–2020) y NewsAPI (plan gratuito, último mes) |
 | Sentimiento (PLN) | Diccionario Loughran-McDonald y modelos propios en `keras` 3 sobre TensorFlow, escritos **como en los apuntes de clase**: `TextVectorization` por palabras, capas `TransformerEncoder` y `PositionalEmbedding`, y el enmascarado de `bert_simplificado`. **M4:** FinBERT preentrenado (`yiyanghkust/finbert-pretrain`, Apache-2.0) cargado con **KerasHub** (`keras-hub` 0.33, `tensorflow-text` 2.21.1) sobre TensorFlow; pesos del commit `88ab954`, convertidos una vez a `safetensors` con `torch` en el procesador (solo para esa conversión). Ni Claude ni otro LLM por API |
 | Evaluación | `scikit-learn` (partición, F1, matriz de confusión) |
@@ -125,7 +125,7 @@ PCD/
 ├── capas_keras.py                # piezas de Keras de M2, M3 y M4 (fija TensorFlow); las importan el 07 y el 08
 ├── 01_universo_tickers.ipynb     # SEC: lista de empresas → NASDAQ + NYSE
 ├── 02_precios_y_recorte.ipynb    # yfinance: precios + recorte a 1.000 empresas + 10 años de histórico
-├── 03_sec_datos_estructurados.ipynb  # SEC: submissions (informes + sector) + cifras financieras (frames)
+├── 03_sec_datos_estructurados.ipynb  # SEC: submissions (informes + sector Fama-French)
 ├── 04_indicadores_tecnicos.ipynb # los 5 indicadores de las señales: ADX, EMA, CMF, RSI, Donchian
 ├── 05_senales_y_riesgo.ipynb     # régimen de mercado y señales de compra/venta
 ├── 06_textos.ipynb               # noticias (FNSPID + NewsAPI), informes SEC y corpus de preentrenamiento
@@ -247,7 +247,7 @@ Stops (2 × ATR y Chandelier Exit), rango de precio esperado, volatilidad con Sh
 
 ### 8.7 Ingesta desde SEC EDGAR (notebooks 01, 03 y 06) — hecho
 
-1. **Datos estructurados (API oficial):** `data.sec.gov/submissions/CIK##########.json` (lista de informes y código SIC → 12 sectores de Fama-French) y `data.sec.gov/api/xbrl/frames/...` (cifras financieras de contexto de 2025).
+1. **Datos estructurados (API oficial):** `data.sec.gov/submissions/CIK##########.json` (lista de informes y código SIC → 12 sectores de Fama-French). Las cifras financieras de 2025 de la API `frames` se retiraron el 18 nov (8.11).
 2. **Texto narrativo:** descarga del documento principal con `requests` y extracción de riesgos y MD&A con `BeautifulSoup` y reglas sobre las cabeceras "Item".
 3. **Política de acceso:** sin cuenta ni API key. `User-Agent` con contacto real (`SEC_EDGAR_USER_AGENT` del `.env`) y máximo ~10 peticiones/segundo.
 
@@ -292,6 +292,7 @@ No se hace, salvo que sobre tiempo al final. Idea mínima: elegir una empresa y 
 
 Se mencionan en la memoria, sin implementarse:
 
+- **Retirado el 18 nov 2026:** las cifras financieras de 2025 (ingresos, beneficio, activos, patrimonio, margen neto y ROE) de la API `frames` de la SEC, que eran la sección 7 del notebook 03: no las usaba ninguna otra parte del proyecto (eran contexto para `app.py`, que también salió).
 - **Retirado el 1 nov 2026:** los indicadores que no usa ninguna señal (MACD, Bollinger, Fibonacci y ATR); backtesting completo (stops, tamaño de posición, cartera, CAGR, drawdown) y screener del día; rango de precio esperado, volatilidad con Sharpe y estacionalidad; sentimiento de los informes SEC y la comparación noticias frente a informes; TF-IDF con red densa; GPT propio (encoder frente a decoder, perplejidad); tokenizador WordPiece.
 - **Retirado el 19 oct 2026:** reglas explícitas frente a regresión logística; sentimiento por empresa frente a por sector; señales con régimen frente a sin régimen; FinBERT de ProsusAI y finbert-tone (ya ajustados con datos de sentimiento; el de ProsusAI, con PhraseBank, así que evaluarlo ahí no sería limpio; el FinBERT **solo preentrenado** entra como M4 el 17 nov); más histórico de noticias (FNSPID de 23 GB, GDELT, RSS diario); bloques temáticos; 8-K.
 - Momentum cross-sectional, amplitud de mercado, automatización diaria y notificaciones.

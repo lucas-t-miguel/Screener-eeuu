@@ -29,6 +29,9 @@ with izquierda:
     grafico.update_layout(height=300, xaxis={"title": "positivos − negativos (puntos porcentuales, IC 95 %)"},
                           yaxis={"categoryorder": "array", "categoryarray": MODELOS[:0:-1]})
     st.plotly_chart(grafico, width="stretch", theme=None)
+    m4_m1 = leer_resultados("08_m4_menos_m1").iloc[0]
+    st.caption(f"**M4 − M1:** {numero(m4_m1['M4 − M1 (%)'], 2)} puntos (IC 95 %: {numero(m4_m1['IC 95 % inferior'], 2)} – "
+               f"{numero(m4_m1['IC 95 % superior'], 2)}), *bootstrap* emparejado por evento.")
 with derecha:
     st.subheader("El mismo día")
     st.caption("Relación **inflada**: muchos titulares cuentan un movimiento que ya ha ocurrido "
@@ -56,7 +59,7 @@ senales_por_grupo = compras[compras["horizonte"] == "5 sesiones"].set_index("gru
 st.caption(f"Señales: {', '.join(f'{grupo} {entero(n)}' for grupo, n in senales_por_grupo.items())}.")
 
 st.markdown("""**Lectura**
-- **Hay relación, pero es pequeña, y solo la encuentran los modelos que leen bien los titulares** (M4 y el diccionario); con M2 y M3 no hay diferencia.
+- **Hay relación, pero es pequeña:** la encuentran M4 y el diccionario, y M4 algo más (M4 − M1, bajo el gráfico); con M2 y M3 no hay diferencia.
 - **El mismo día la diferencia es mucho mayor**, pero sobre todo porque el titular cuenta lo que ya ha pasado.
 - **Las noticias sirven como aviso, no como confirmación:** una compra técnica después de noticias negativas sale peor; las positivas no la mejoran.
 - Sin la hora de publicación, esto no demuestra que se pueda anticipar la bolsa con las noticias.""")

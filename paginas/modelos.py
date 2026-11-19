@@ -45,7 +45,8 @@ st.table(pd.DataFrame(filas).set_index("modelo"))
 def por_comparacion(tabla: pd.DataFrame, conjunto: str) -> pd.Series:
     """Cada diferencia de un conjunto, con su intervalo y si es concluyente, indexada por su código ('M2 − M1'…)."""
     tabla = tabla[tabla["conjunto"] == conjunto].copy()
-    tabla["comparación"] = tabla["pregunta"].map(lambda pregunta: re.search(r"\((M\d − M\d)\)", pregunta).group(1))
+    # El código de la pregunta, «(M2 - M1)», escrito con el signo menos: «M2 − M1»
+    tabla["comparación"] = tabla["pregunta"].map(lambda pregunta: re.search(r"\((M\d) [-−] (M\d)\)", pregunta).expand(r"\1 − \2"))
     return tabla.set_index("comparación").apply(
         lambda f: con_intervalo(f["diferencia"], f["IC 95 % inferior"], f["IC 95 % superior"]) + f"  ·  {f['¿concluyente?']}", axis=1)
 

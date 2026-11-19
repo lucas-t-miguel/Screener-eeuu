@@ -1,6 +1,6 @@
 """Página «Explorador»: precios, señales técnicas y noticias de una empresa, de octubre de 2016 a junio de 2020.
 
-Lee los datos diarios que guardaron los notebooks 02, 04, 05 y 08; no calcula indicadores nuevos ni carga ningún modelo.
+Lee los datos diarios que guardaron los notebooks 02, 04, 05 y 08, y el nombre y el sector de cada empresa del 03; no calcula indicadores nuevos ni carga ningún modelo.
 """
 
 from datetime import timedelta
@@ -54,7 +54,7 @@ eleccion_empresa, eleccion_fechas = st.columns([3, 2])
 ticker = eleccion_empresa.selectbox("Empresa (las 633 con noticias)", con_noticias, index=con_noticias.index("AAPL"),
                                     format_func=lambda t: f"{t} — {empresas.loc[t, 'name']}")
 fechas = eleccion_fechas.date_input("Fechas (de oct 2016 a jun 2020)", value=(FIN - timedelta(days=365), FIN),
-                                    min_value=INICIO, max_value=FIN)
+                                    min_value=INICIO, max_value=FIN, format="DD/MM/YYYY")
 if len(fechas) != 2:
     st.stop()   # mientras se elige la segunda fecha
 desde, hasta = pd.Timestamp(fechas[0]), pd.Timestamp(fechas[1])

@@ -23,8 +23,9 @@ def leer_resultados(nombre: str) -> pd.DataFrame:
 
 
 def numero(valor: float, decimales: int = 3) -> str:
-    """Un número con coma decimal, como en el resto del proyecto."""
-    return f"{valor:.{decimales}f}".replace(".", ",")
+    """Un número en formato español, con punto de miles, coma decimal y el signo menos tipográfico: '−4.037,77'."""
+    texto = f"{valor:,.{decimales}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
+    return texto.replace("-", "−")
 
 
 def entero(valor: int) -> str:

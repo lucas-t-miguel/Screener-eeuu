@@ -36,7 +36,7 @@ Una app de Streamlit para enseñar el proyecto: se abre con `streamlit run app.p
 - **Noticias y bolsa:** la diferencia entre noticias positivas y negativas en la sesión siguiente, por modelo; el mismo día, aparte; y las compras técnicas según las noticias previas.
 - **Explorador:** para una empresa y unas fechas (de octubre de 2016 a junio de 2020), las velas con EMA(4) y EMA(8), el canal de Donchian, las señales de compra y venta y, en una franja propia, los días con noticias coloreados según M4 (con los titulares al pasar el ratón); debajo, el RSI y el ADX, y la tabla de titulares.
 
-**La app no recalcula ningún resultado:** los notebooks 07, 08 y 09 guardan sus tablas finales en `data/cache/resultados_*.parquet`, y el Explorador lee los datos diarios que guardaron los notebooks 02, 04, 05 y 08. No carga Keras ni TensorFlow. El tema está en `.streamlit/config.toml`.
+**La app no recalcula ningún resultado:** los notebooks 07, 08 y 09 guardan sus tablas finales en `data/cache/resultados_*.parquet`, y el Explorador lee los datos diarios que guardaron los notebooks 02, 04, 05 y 08, y el nombre y el sector de cada empresa del 03. No carga Keras ni TensorFlow. El tema está en `.streamlit/config.toml`.
 
 ## Código compartido y carpetas
 
@@ -67,7 +67,7 @@ Una app de Streamlit para enseñar el proyecto: se abre con `streamlit run app.p
 
 **Los gráficos son interactivos (plotly) y no se ven en el visor de GitHub:** hay que abrir los notebooks en Jupyter. Allí se ven sin conexión a internet.
 
-**Cuánto tarda.** La primera vez, lo caro es descargar el texto de los informes de la SEC (06, unas 2 h 30 min, respetando el límite de 10 peticiones por segundo), preentrenar M3 (07, unos 80 min), ajustar M4 (07, unos 25 min) y puntuar con M4 los titulares de FNSPID (08, unos 25 min), todo en el procesador, sin GPU. Cada resultado se guarda en `data/` y, al volver a ejecutar, se lee de disco: con la caché completa, cada notebook tarda de segundos a pocos minutos y no se vuelve a entrenar ni a descargar nada.
+**Cuánto tarda.** La primera vez, lo caro es descargar el texto de los informes de la SEC (06, 2 h 24 min, respetando el límite de 10 peticiones por segundo), preentrenar M3 (07, unos 77 min), ajustar M4 (07, unos 24 min) y puntuar con M4 los titulares de FNSPID (08, unos 20 min), todo en el procesador, sin GPU. Cada resultado se guarda en `data/` y, al volver a ejecutar, se lee de disco: con la caché completa, cada notebook tarda de segundos a pocos minutos y no se vuelve a entrenar ni a descargar nada.
 
 **Los titulares de NewsAPI** (notebook 06) solo cubren el último mes, así que se fueron acumulando ejecutando el 06 a menudo, del 19 de octubre al 16 de noviembre de 2026. Los 300 titulares etiquetados a mano salen de esa recogida y están guardados en `etiquetas/`.
 

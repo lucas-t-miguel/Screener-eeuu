@@ -20,6 +20,9 @@ import requests
 from scipy import stats
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
+# Etiquetas o valores numéricos: lista, array de numpy o serie de pandas
+Valores = list | np.ndarray | pd.Series
+
 # --- Rutas ---
 CARPETA_CACHE = Path(__file__).resolve().parent / "data" / "cache"
 
@@ -41,6 +44,12 @@ def comprobar_descarga_manual(ruta: Path, sha256_esperado: str, enlace_descarga:
     if huella != sha256_esperado:
         raise RuntimeError(f"{ruta.name} no es el fichero esperado (su huella SHA-256 no coincide): "
                            f"¿otra versión o una descarga incompleta? Vuelve a bajarlo de {enlace_descarga}")
+
+
+# --- Formato de las cifras que se imprimen (notebooks 02 y 06) ---
+def numero_es(valor: float, decimales: int = 0) -> str:
+    """Un número en formato español, con punto de miles y coma decimal: 464983 -> '464.983', 17.08 -> '17,1'."""
+    return f"{valor:,.{decimales}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
 
 
 # --- Reproducibilidad ---
@@ -220,8 +229,8 @@ CMF_UMBRAL = 0.07
 VOLUMEN_MINIMO_SESIONES = 20
 VOLUMEN_MINIMO_DOLARES = 1_000_000
 # Calentamiento: los primeros valores del ADX de pandas-ta salen inflados (media ~48 en las
-# 30 primeras sesiones frente a ~24 después) y no se estabilizan hasta ~60 sesiones.
-# Medido en el notebook 05. Durante el calentamiento no hay régimen ni señales.
+# 30 primeras sesiones frente a ~24 después) y no se estabilizan hasta ~60 sesiones (medido al preparar
+# el notebook 05, que enseña el efecto en el % de empresas en tendencia). Durante el calentamiento no hay régimen ni señales.
 SESIONES_CALENTAMIENTO = 60
 
 
@@ -412,7 +421,12 @@ CLASES_SENTIMIENTO = ("negative", "neutral", "positive")
 BOOTSTRAP_REMUESTREOS = 1000
 
 
-def evaluar_clasificacion(reales, predichas, clases: tuple[str, ...] = CLASES_SENTIMIENTO,
+def f1_macro(reales: np.ndarray, predichas: np.ndarray, clases: tuple[str, ...] = CLASES_SENTIMIENTO) -> float:
+    """F1 macro con las clases fijas: una clase que el modelo nunca predice tiene F1 = 0 (sin aviso)."""
+    return f1_score(reales, predichas, labels=list(clases), average="macro", zero_division=0)
+
+
+def evaluar_clasificacion(reales: Valores, predichas: Valores, clases: tuple[str, ...] = CLASES_SENTIMIENTO,
                           remuestreos: int = BOOTSTRAP_REMUESTREOS) -> dict:
     """Mide un clasificador de sentimiento comparando sus predicciones con las etiquetas reales.
 
@@ -430,21 +444,17 @@ def evaluar_clasificacion(reales, predichas, clases: tuple[str, ...] = CLASES_SE
     if desconocidas:
         raise ValueError(f"Clases desconocidas: {desconocidas} (se esperaban {clases})")
 
-    # zero_division=0: una clase que el modelo nunca predice tiene F1 = 0 (sin aviso)
-    def f1_macro(r, p):
-        return f1_score(r, p, labels=list(clases), average="macro", zero_division=0)
-
     generador = np.random.default_rng(SEMILLA)
     f1_remuestreos = []
     for _ in range(remuestreos):
         indices = generador.integers(0, len(reales), size=len(reales))
-        f1_remuestreos.append(f1_macro(reales[indices], predichas[indices]))
+        f1_remuestreos.append(f1_macro(reales[indices], predichas[indices], clases))
     ic_inferior, ic_superior = np.percentile(f1_remuestreos, [2.5, 97.5])
 
     matriz = pd.DataFrame(confusion_matrix(reales, predichas, labels=list(clases)),
                           index=pd.Index(clases, name="real"), columns=pd.Index(clases, name="predicha"))
     return {
-        "f1_macro": float(f1_macro(reales, predichas)),
+        "f1_macro": float(f1_macro(reales, predichas, clases)),
         "f1_ic_inferior": float(ic_inferior),
         "f1_ic_superior": float(ic_superior),
         "exactitud": float(accuracy_score(reales, predichas)),
@@ -453,7 +463,7 @@ def evaluar_clasificacion(reales, predichas, clases: tuple[str, ...] = CLASES_SE
     }
 
 
-def comparar_f1(reales, predichas_a, predichas_b, clases: tuple[str, ...] = CLASES_SENTIMIENTO,
+def comparar_f1(reales: Valores, predichas_a: Valores, predichas_b: Valores, clases: tuple[str, ...] = CLASES_SENTIMIENTO,
                 remuestreos: int = BOOTSTRAP_REMUESTREOS) -> dict:
     """Diferencia de F1 macro entre dos modelos (a menos b) sobre las mismas frases, con su intervalo del 95 %.
 
@@ -467,21 +477,18 @@ def comparar_f1(reales, predichas_a, predichas_b, clases: tuple[str, ...] = CLAS
         raise ValueError(f"Hacen falta las mismas frases en reales ({len(reales)}) y en los dos modelos "
                          f"({len(predichas_a)} y {len(predichas_b)}), y al menos una")
 
-    def f1_macro(r, p):
-        return f1_score(r, p, labels=list(clases), average="macro", zero_division=0)
-
     generador = np.random.default_rng(SEMILLA)
     diferencias = []
     for _ in range(remuestreos):
         indices = generador.integers(0, len(reales), size=len(reales))
-        diferencias.append(f1_macro(reales[indices], predichas_a[indices]) - f1_macro(reales[indices], predichas_b[indices]))
+        diferencias.append(f1_macro(reales[indices], predichas_a[indices], clases)
+                           - f1_macro(reales[indices], predichas_b[indices], clases))
     ic_inferior, ic_superior = np.percentile(diferencias, [2.5, 97.5])
     return {
-        "diferencia": float(f1_macro(reales, predichas_a) - f1_macro(reales, predichas_b)),
+        "diferencia": float(f1_macro(reales, predichas_a, clases) - f1_macro(reales, predichas_b, clases)),
         "ic_inferior": float(ic_inferior),
         "ic_superior": float(ic_superior),
     }
-
 
 
 def tabla_f1(evaluaciones: dict) -> pd.DataFrame:
@@ -518,9 +525,8 @@ def tabla_diferencias(frases: pd.DataFrame, preguntas: dict, columna_real: str =
     return pd.DataFrame(filas).T
 
 
-
 # --- Noticias y bolsa (notebooks 08 y 09) ---
-def diferencia_medias_welch(grupo_a, grupo_b, confianza: float = 0.95) -> dict:
+def diferencia_medias_welch(grupo_a: Valores, grupo_b: Valores, confianza: float = 0.95) -> dict:
     """Diferencia de medias (a menos b) con su intervalo de confianza de Welch y el p-valor.
 
     Welch no supone que los dos grupos tengan la misma varianza. Supone observaciones independientes:
@@ -536,7 +542,7 @@ def diferencia_medias_welch(grupo_a, grupo_b, confianza: float = 0.95) -> dict:
             "ic_superior": float(intervalo.high), "p_valor": float(prueba.pvalue), "n_a": len(grupo_a), "n_b": len(grupo_b)}
 
 
-def media_con_intervalo(valores, confianza: float = 0.95) -> dict:
+def media_con_intervalo(valores: Valores, confianza: float = 0.95) -> dict:
     """Media de unos valores con su intervalo de confianza (t de Student) y cuántos son.
 
     Lanza ValueError si hay menos de 2 valores.
@@ -548,9 +554,8 @@ def media_con_intervalo(valores, confianza: float = 0.95) -> dict:
     mitad = stats.t.ppf((1 + confianza) / 2, len(valores) - 1) * valores.std(ddof=1) / np.sqrt(len(valores))
     return {"media": float(media), "ic_inferior": float(media - mitad), "ic_superior": float(media + mitad), "n": len(valores)}
 
+
 # --- M1: diccionario Loughran-McDonald (notebooks 07 y 08) ---
-
-
 def tono_loughran_mcdonald(texto: str, palabras_negativas: set[str], palabras_positivas: set[str]) -> float:
     """Tono de un texto según el diccionario: (palabras positivas - negativas) / palabras del texto.
 

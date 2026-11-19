@@ -28,7 +28,7 @@ MAX_LEN = 64          # palabras por frase (se corta o se rellena), como en el n
 VOCAB_SIZE = 30000    # tamaño del vocabulario, como en los apuntes
 
 
-def custom_standardization(input_data):
+def custom_standardization(input_data: tf.Tensor) -> tf.Tensor:
     """Minúsculas, sin <br /> y sin signos de puntuación (como en los apuntes)."""
     lowercase = tf.strings.lower(input_data)
     stripped_html = tf.strings.regex_replace(lowercase, "<br />", " ")
@@ -51,6 +51,8 @@ def cargar_vectorizador(ruta_vocabulario: Path) -> TextVectorization:
 
 
 class TransformerEncoder(layers.Layer):
+    """Un bloque encoder del Transformer: atención de varias cabezas y red densa, con normalización (código de los apuntes)."""
+
     def __init__(self, embed_dim, dense_dim, num_heads, **kwargs):
         super().__init__(**kwargs)
         self.embed_dim = embed_dim
@@ -86,6 +88,8 @@ class TransformerEncoder(layers.Layer):
 
 
 class PositionalEmbedding(layers.Layer):
+    """Embedding de cada palabra más el de su posición en la frase (código de los apuntes)."""
+
     def __init__(self, sequence_length, input_dim, output_dim, **kwargs):
         super().__init__(**kwargs)
         self.token_embeddings = layers.Embedding(

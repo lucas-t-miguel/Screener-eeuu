@@ -375,8 +375,8 @@ def buscar_titulares_newsapi(palabras: list[str], desde: pd.Timestamp) -> list[d
     """Busca en los titulares de medios financieros cualquiera de las palabras, desde la fecha dada.
 
     Requiere haber llamado antes a load_dotenv(). Devuelve la lista de artículos tal como la da
-    NewsAPI. Lanza RuntimeError si falta la clave o si la API responde con un error (p. ej. el
-    límite diario agotado).
+    NewsAPI. Lanza RuntimeError si falta la clave, si hay un fallo de red o timeout, o si la API
+    responde con un error (p. ej. el límite diario agotado).
     """
     clave = os.getenv("NEWSAPI_KEY", "").strip()
     if not clave:
@@ -390,11 +390,19 @@ def buscar_titulares_newsapi(palabras: list[str], desde: pd.Timestamp) -> list[d
         "sortBy": "publishedAt",
         "pageSize": 100,
     }
-    respuesta = requests.get(URL_NEWSAPI, params=parametros, headers={"X-Api-Key": clave}, timeout=30)
-    datos = respuesta.json()
+    try:
+        respuesta = requests.get(URL_NEWSAPI, params=parametros, headers={"X-Api-Key": clave}, timeout=30)
+    except requests.exceptions.RequestException as error:
+        raise RuntimeError(f"Fallo de red al consultar NewsAPI: {error}") from error
+
     if respuesta.status_code != 200:
-        raise RuntimeError(f"NewsAPI respondió {respuesta.status_code}: {datos.get('code')} - {datos.get('message')}")
-    return datos["articles"]
+        # Los errores de NewsAPI suelen venir en JSON con un mensaje; si no, se muestra el principio del texto
+        try:
+            detalle = respuesta.json().get("message", "")
+        except ValueError:
+            detalle = respuesta.text[:200]
+        raise RuntimeError(f"NewsAPI respondió HTTP {respuesta.status_code}: {detalle}")
+    return respuesta.json()["articles"]
 
 
 # --- Evaluación de los modelos de sentimiento (notebooks 07 y 08) ---

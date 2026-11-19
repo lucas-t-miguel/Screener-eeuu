@@ -52,7 +52,7 @@ Una app de Streamlit para enseñar el proyecto: se abre con `streamlit run app.p
 1. **Python 3.12 o superior** e instalar las dependencias: `python3 -m pip install -r requirements.txt`.
    - `torch` solo se usa una vez, para convertir los pesos de FinBERT, que vienen en el formato de PyTorch. Los modelos se entrenan con Keras sobre TensorFlow.
    - `tensorflow-text` va ligado a la versión de TensorFlow (2.21): si se actualiza una, hay que actualizar la otra.
-2. **Copiar `.env.example` como `.env` y rellenarlo:** un User-Agent con un contacto real para la SEC (`SEC_EDGAR_USER_AGENT`) y una clave gratuita de [NewsAPI](https://newsapi.org) (`NEWSAPI_KEY`).
+2. **Copiar `.env.example` como `.env` y rellenarlo:** un User-Agent con un contacto real para la SEC (`SEC_EDGAR_USER_AGENT`) y una clave gratuita de [NewsAPI](https://newsapi.org) (`NEWSAPI_KEY`). La clave de NewsAPI solo hace falta para volver a pedir titulares recientes (`ACTUALIZAR_NEWSAPI = True` en el notebook 06).
 3. **Descargar a mano estos cuatro ficheros** y guardarlos donde se indica. Cada notebook comprueba que están y que su huella SHA-256 es la esperada.
 
 | Fichero | Página de descarga | Enlace directo | Dónde guardarlo | Lo usa |
@@ -63,7 +63,9 @@ Una app de Streamlit para enseñar el proyecto: se abre con `streamlit run app.p
 | `Loughran-McDonald_MasterDictionary_1993-2025.csv` | [SRAF, Loughran-McDonald Master Dictionary](https://sraf.nd.edu/loughranmcdonald-master-dictionary/) → enlace *CSV* | [Google Drive](https://drive.google.com/file/d/1iq2RUf8qGFEAk1g8wQntP3habOnR3fXF/view) | `data/loughran_mcdonald/Loughran-McDonald_MasterDictionary_1993-2025.csv` | 07 |
 
 4. **FinBERT se descarga solo** en el notebook 07, de [Hugging Face](https://huggingface.co/yiyanghkust/finbert-pretrain), fijado en el commit `88ab954` y con su huella SHA-256 comprobada.
-5. **Ejecutar los notebooks en orden, del 01 al 09**, cada uno de arriba abajo.
+5. **Ejecutar los notebooks en orden, del 01 al 09**, cada uno de arriba abajo, en JupyterLab (`jupyter lab`) o en VS Code.
+
+**Los gráficos son interactivos (plotly) y no se ven en el visor de GitHub:** hay que abrir los notebooks en Jupyter. Allí se ven sin conexión a internet.
 
 **Cuánto tarda.** La primera vez, lo caro es descargar el texto de los informes de la SEC (06, unas 2 h 30 min, respetando el límite de 10 peticiones por segundo), preentrenar M3 (07, unos 80 min), ajustar M4 (07, unos 25 min) y puntuar con M4 los titulares de FNSPID (08, unos 25 min), todo en el procesador, sin GPU. Cada resultado se guarda en `data/` y, al volver a ejecutar, se lee de disco: con la caché completa, cada notebook tarda de segundos a pocos minutos y no se vuelve a entrenar ni a descargar nada.
 

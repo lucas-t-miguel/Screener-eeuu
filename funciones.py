@@ -1,8 +1,9 @@
-"""Funciones reutilizables del Screener Financiero EEUU.
+"""Funciones y constantes compartidas del proyecto (noticias y bolsa en EEUU).
 
 Aquí solo hay definiciones de funciones y constantes: importar este
-archivo no ejecuta nada. Cada función está aquí porque se usa en más de
-un notebook (o en un notebook y en app.py).
+archivo no ejecuta nada. Están las que usan varios notebooks y las de
+cálculo central de un notebook (descargas, indicadores, señales), para
+que el notebook se lea sin ellas.
 """
 
 import hashlib
@@ -285,7 +286,7 @@ def detectar_senales(precios: pd.DataFrame, indicadores: pd.DataFrame) -> pd.Dat
     return senales
 
 
-# --- Noticias: a qué empresa se refiere un titular (notebook 06 y app.py) ---
+# --- Noticias: a qué empresa se refiere un titular (notebook 06) ---
 # Si la primera palabra del nombre es una de estas, se usan las dos primeras (TEXAS -> TEXAS INSTRUMENTS)
 PALABRAS_DEMASIADO_COMUNES = {
     "AMERICAN", "GENERAL", "FIRST", "UNITED", "NATIONAL", "INTERNATIONAL", "TEXAS", "WESTERN", "EASTERN",
@@ -360,7 +361,7 @@ def menciona_empresa(titular: str, ticker: str, palabra_clave: str) -> bool:
     return len(palabra_clave) >= 3 and re.search(r"\b" + re.escape(palabra_clave) + r"\b", normalizar_para_buscar(titular)) is not None
 
 
-# --- NewsAPI (notebook 06 y app.py) ---
+# --- NewsAPI (notebook 06) ---
 URL_NEWSAPI = "https://newsapi.org/v2/everything"
 # Solo medios financieros: sin este filtro, buscar "Garmin" devuelve sorteos de relojes y paquetes de software
 MEDIOS_FINANCIEROS = [

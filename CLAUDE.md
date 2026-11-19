@@ -127,7 +127,7 @@ PCD/
 ├── 02_precios_y_recorte.ipynb    # yfinance: precios + recorte a 1.000 empresas + 10 años de histórico
 ├── 03_sec_datos_estructurados.ipynb  # SEC: submissions (informes + sector Fama-French)
 ├── 04_indicadores_tecnicos.ipynb # los 5 indicadores de las señales: ADX, EMA, CMF, RSI, Donchian
-├── 05_senales_y_riesgo.ipynb     # régimen de mercado y señales de compra/venta
+├── 05_senales.ipynb              # régimen de mercado y señales de compra/venta
 ├── 06_textos.ipynb               # noticias (FNSPID + NewsAPI), informes SEC y corpus de preentrenamiento
 ├── 07_modelos_sentimiento.ipynb  # PhraseBank; M1 diccionario, M2 Transformer, M3 BERT, M4 FinBERT; comparación
 ├── 08_noticias_y_bolsa.ipynb     # sentimiento de los titulares, ~200 titulares a mano, estudio de eventos

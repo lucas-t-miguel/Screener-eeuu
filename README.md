@@ -19,7 +19,7 @@ Proyecto de la asignatura **Proyecto de Ciencia de Datos**. Se mide el sentimien
 | `02_precios_y_recorte.ipynb` | ¿Cuáles son las 1.000 más líquidas, y cómo han cotizado en los últimos 10 años? (precios de yfinance) |
 | `03_sec_datos_estructurados.ipynb` | ¿A qué sector pertenece cada empresa (12 sectores de Fama-French) y qué informes ha presentado a la SEC? |
 | `04_indicadores_tecnicos.ipynb` | ¿Qué dicen cada día los 5 indicadores técnicos de las señales (RSI, CMF, ADX, cruce de EMA y Donchian)? |
-| `05_senales_y_riesgo.ipynb` | ¿Cuándo hay una señal técnica de compra o de venta? |
+| `05_senales.ipynb` | ¿Cuándo hay una señal técnica de compra o de venta? |
 | `06_textos.ipynb` | ¿Qué texto hay de cada empresa? Titulares de FNSPID y NewsAPI, informes de la SEC y el corpus de preentrenamiento |
 | `07_modelos_sentimiento.ipynb` | ¿Qué forma de conseguir un modelo mide mejor el sentimiento de un texto financiero? (M1–M4 en Financial PhraseBank) |
 | `08_noticias_y_bolsa.ipynb` | ¿Saben los modelos leer titulares reales, y se mueve la acción después de una noticia? |

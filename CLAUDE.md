@@ -83,7 +83,7 @@ Se responde en tres partes:
 
 > **Motor de Keras: TensorFlow** (decisión del autor, 1 nov 2026, tras la prueba descrita en la bitácora). Es el motor de clase y el que pide menos cambios al código de los apuntes: con PyTorch hacían falta 5 cambios más (tensores en la GPU que no pasan a numpy, `tf.*` dentro de las capas, `float64`, el embedding de posición fuera de una capa) y la GPU del Mac cerraba Python en `torch.arange`. Tampoco era más rápido con esta red: 90 ms por lote con TensorFlow frente a 96 ms con PyTorch (preentrenamiento, lotes de 32). Todos los notebooks con Keras lo fijan en su primera celda de código, antes de importarlo: `os.environ["KERAS_BACKEND"] = "tensorflow"`.
 
-> **Cambios a los apuntes por Keras 3** (cada uno se anota en el notebook como "Diferencia con los apuntes"):
+> **Cambios a los apuntes por Keras 3** (cada uno se explica en el notebook como decisión propia, con su motivo y sin mencionar los apuntes; regla 11):
 > 1. Nombres de capa sin `/` (`encoder_0/ffn` → `encoder_0_ffn`): Keras 3 no los admite.
 > 2. Pérdida del preentrenamiento con la reducción por defecto en lugar de `Reduction.NONE`: los `sample_weights` ya anulan las posiciones no tapadas.
 > 3. Token de máscara `"[mask]"` en minúscula como valor por defecto de `special_tokens`: en los apuntes el valor por defecto es `"[MASK]"`, que la estandarización convertiría en `[UNK]`, pero la llamada de los apuntes ya pasa `"[mask]"`, así que el resultado es el mismo (no es un error de los apuntes).
@@ -108,8 +108,8 @@ Se responde en tres partes:
 8. **Disclaimer permanente.** Nada de lo que muestre el proyecto es una recomendación de inversión.
 9. **Documentar decisión y razonamiento en el momento**, en la bitácora (sección 10).
 10. **Legibilidad por encima de todo.** Nombres en español y descriptivos, celdas cortas, nada de abstracciones innecesarias. Si una celda no se explica en 30 segundos, se simplifica o su detalle va a la bitácora.
-11. **Como en los apuntes.** Si un modelo o técnica aparece en los apuntes de clase, se usa la misma estructura y los mismos nombres. Cada diferencia se anota en el notebook con una línea **"Diferencia con los apuntes: …"** y su motivo (Keras 3, 3 clases, validación propia…).
-    **Excepción: M4** (8.6) parte de un modelo que no está en los apuntes: se carga con KerasHub en lugar de las capas de clase, usa el tokenizador WordPiece de FinBERT en lugar de `TextVectorization`, se ajusta en una sola fase con Adam(2e-5) y clasifica con la salida de `[CLS]`. Cada una de estas diferencias se anota igualmente con su línea "Diferencia con los apuntes".
+11. **Como en los apuntes, sin mencionarlos.** Si un modelo o técnica aparece en los apuntes de clase, se usa la misma estructura y los mismos nombres. **Nada de lo que se entrega** (notebooks, `funciones.py`, `capas_keras.py`, la app, el README, `requirements.txt`) menciona los apuntes, la clase, la asignatura ni sus notebooks (decisión del autor, 19 nov). Cada decisión que se aparta de ese código (Keras 3, 3 clases, validación aparte del test, `[mask]` en minúscula, `.keras`…) se explica en el notebook como decisión propia, con lo que se hace y por qué, sin decir de dónde viene. Las referencias entre los notebooks 01–09 sí se mantienen.
+    **Excepción: M4** (8.6) parte de un modelo que no está en los apuntes: se carga con KerasHub en lugar de `PositionalEmbedding` y `TransformerEncoder`, usa el tokenizador WordPiece de FinBERT en lugar de `TextVectorization`, se ajusta en una sola fase con Adam(2e-5) y clasifica con la salida de `[CLS]`. El 07 lo explica como diferencias con M2 y M3.
 
 ---
 

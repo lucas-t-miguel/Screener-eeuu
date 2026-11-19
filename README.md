@@ -2,7 +2,7 @@
 
 ¿Se relaciona el sentimiento de las noticias de una empresa con lo que hace después su acción en bolsa?
 
-Proyecto de la asignatura **Proyecto de Ciencia de Datos**. Se mide el sentimiento de los titulares de unas 1.000 empresas de NASDAQ y NYSE con cuatro modelos, se comprueba cuál lo mide mejor, y se compara la rentabilidad de las acciones, menos la del mercado, después de las noticias positivas, neutrales y negativas.
+Se mide el sentimiento de los titulares de unas 1.000 empresas de NASDAQ y NYSE con cuatro modelos, se comprueba cuál lo mide mejor, y se compara la rentabilidad de las acciones, menos la del mercado, después de las noticias positivas, neutrales y negativas.
 
 ## Resultados principales
 

@@ -1,7 +1,6 @@
 """Las piezas de Keras de los modelos de sentimiento, compartidas por los notebooks 07 y 08.
 
-- M2 y M3: la estandarización del texto, el vocabulario y las capas `TransformerEncoder` y `PositionalEmbedding`,
-  como en los apuntes de clase (`Transformers.ipynb` y `bert_simplificado.ipynb`).
+- M2 y M3: la estandarización del texto, el vocabulario y las capas `TransformerEncoder` y `PositionalEmbedding`.
 - M4: FinBERT con la GELU exacta y la cabeza [CLS], y su tokenizador.
 
 Va aparte de `funciones.py` porque necesita Keras: importarlo fija el motor de Keras en TensorFlow,
@@ -25,11 +24,11 @@ if keras.backend.backend() != "tensorflow":
                       "importa capas_keras antes que keras (o reinicia el kernel)")
 
 MAX_LEN = 64          # palabras por frase (se corta o se rellena), como en el notebook 07
-VOCAB_SIZE = 30000    # tamaño del vocabulario, como en los apuntes
+VOCAB_SIZE = 30000    # tamaño del vocabulario
 
 
 def custom_standardization(input_data: tf.Tensor) -> tf.Tensor:
-    """Minúsculas, sin <br /> y sin signos de puntuación (como en los apuntes)."""
+    """Minúsculas, sin <br /> y sin signos de puntuación."""
     lowercase = tf.strings.lower(input_data)
     stripped_html = tf.strings.regex_replace(lowercase, "<br />", " ")
     return tf.strings.regex_replace(
@@ -51,7 +50,7 @@ def cargar_vectorizador(ruta_vocabulario: Path) -> TextVectorization:
 
 
 class TransformerEncoder(layers.Layer):
-    """Un bloque encoder del Transformer: atención de varias cabezas y red densa, con normalización (código de los apuntes)."""
+    """Un bloque encoder del Transformer: atención de varias cabezas y red densa, con normalización."""
 
     def __init__(self, embed_dim, dense_dim, num_heads, **kwargs):
         super().__init__(**kwargs)
@@ -88,7 +87,7 @@ class TransformerEncoder(layers.Layer):
 
 
 class PositionalEmbedding(layers.Layer):
-    """Embedding de cada palabra más el de su posición en la frase (código de los apuntes)."""
+    """Embedding de cada palabra más el de su posición en la frase."""
 
     def __init__(self, sequence_length, input_dim, output_dim, **kwargs):
         super().__init__(**kwargs)
@@ -108,7 +107,7 @@ class PositionalEmbedding(layers.Layer):
         return embedded_tokens + embedded_positions
 
     def compute_mask(self, inputs, mask=None):
-        return keras.ops.not_equal(inputs, 0)   # Diferencia con los apuntes: tf.math.not_equal no vale en Keras 3
+        return keras.ops.not_equal(inputs, 0)   # no tf.math.not_equal: Keras 3 llama aquí con un tensor simbólico al construir el modelo
 
     def get_config(self):
         config = super().get_config()
